@@ -1,0 +1,28 @@
+{
+  "packageManager": "pnpm@7.5.2",
+  "name": "@dimensiondev/webextension-polyfill",
+  "version": "0.0.0",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "publish": "pnpm run build && npx changeset tag && npx changeset publish",
+    "build": "pnpm run tsc && pnpm run bundle",
+    "tsc": "tsc -b ./src/tsconfig.json",
+    "tsc:watch": "tsc -b ./src/tsconfig.json --watch",
+    "bundle": "rollup -c",
+    "bundle:watch": "rollup -c -w"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.23.1",
+    "prettier": "^2.7.1",
+    "rollup": "^2.72.0",
+    "typescript": "4.7.4",
+    "web-ext-types": "^3.2.1"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": []
+  },
+  "dependencies": {
+    "@masknet/compartment": "^0.2.0"
+  }
+}
