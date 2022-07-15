@@ -1,4 +1,4 @@
-import type { InternalMessage } from "./internal.js"
+import type { InternalMessage } from './internal.js'
 
 /** Define Blob type in communicate with remote */
 export type FrameworkStringOrBinary =
@@ -18,7 +18,7 @@ export type FrameworkStringOrBinary =
 /**
  * This describes what JSONRPC calls that Native side should implement
  */
- export interface FrameworkImplementation {
+export interface FrameworkImplementation {
     //#region // ? URL.*
     /**
      * Host should save the binding with `uuid` and the `data`
