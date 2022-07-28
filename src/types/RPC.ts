@@ -1,23 +1,5 @@
 import type { InternalMessage } from './internal.js'
 
-/** Define Blob type in communicate with remote */
-export type FrameworkStringOrBinary =
-    | {
-          type: 'text'
-          content: string
-      }
-    | {
-          type: 'array buffer'
-          content: string
-      }
-    | {
-          type: 'blob'
-          content: string
-          mimeType: string
-      }
-/**
- * This describes what JSONRPC calls that Native side should implement
- */
 export interface FrameworkImplementation {
     //#region // ? URL.*
     /**
@@ -109,7 +91,7 @@ export interface FrameworkImplementation {
     /**
      * Query opened tabs
      * @param extensionID
-     * @param options - See https://mdn.io/browser.tabs.query
+     * @param queryInfo - See https://mdn.io/browser.tabs.query
      */
     'browser.tabs.query'(
         extensionID: string,
@@ -219,3 +201,22 @@ export interface FrameworkMayInvokeMethods {
         sender: browser.runtime.MessageSender,
     ): Promise<void>
 }
+
+export interface FrameworkString {
+    type: 'text'
+    content: string
+}
+
+export interface FrameworkArrayBuffer {
+    type: 'array buffer'
+    content: string
+}
+
+export interface FrameworkBlob {
+    type: 'blob'
+    content: string
+    mimeType: string
+}
+
+/** Define Blob type in communicate with the host */
+export type FrameworkStringOrBinary = FrameworkString | FrameworkArrayBuffer | FrameworkBlob
