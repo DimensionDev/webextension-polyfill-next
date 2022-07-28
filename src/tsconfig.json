@@ -38,7 +38,7 @@
 
         // Interop Constraints
         "forceConsistentCasingInFileNames": true,
-        "isolatedModules": true,
+        "isolatedModules": false,
 
         // Language and Environment
         "lib": ["ES2021"],

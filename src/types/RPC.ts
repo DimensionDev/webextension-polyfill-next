@@ -1,4 +1,4 @@
-import type { InternalMessage } from './internal.js'
+import type { InternalMessage } from './internal-messages.js'
 
 export interface FrameworkImplementation {
     //#region // ? URL.*
