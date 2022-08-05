@@ -1,6 +1,6 @@
 import { Environment } from '../../types/constants.js'
 import type { Manifest } from '../../types/extension.js'
-import { getExtensionOrigin } from './url.js'
+import { getExtensionOrigin } from '../utils/url.js'
 
 export const isDebugMode = location.hostname === 'localhost'
 export interface BackgroundMock {
@@ -31,4 +31,22 @@ export function parseDebugModeURL(extensionID: string, manifest: Manifest): Mock
                 type,
         )
     }
+}
+
+export function debugModeURLRewrite(extensionID: string, url: string): string {
+    if (!isDebugMode) return url
+    const u = new URL(url, getExtensionOrigin(extensionID))
+    if (u.protocol === 'holoflows-extension:') {
+        u.protocol = location.protocol
+        u.host = location.host
+        u.pathname = '/extension/' + extensionID + '/' + u.pathname
+        console.debug('Rewrited url', url, 'to', u.toJSON())
+        return u.toJSON()
+    } else if (u.origin === location.origin) {
+        if (u.pathname.startsWith('/extension/')) return url
+        u.pathname = '/extension/' + extensionID + u.pathname
+        console.debug('Rewrited url', url, 'to', u.toJSON())
+        return u.toJSON()
+    }
+    return url
 }

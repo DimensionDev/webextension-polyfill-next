@@ -13,9 +13,9 @@
     "bundle:watch": "rollup -c -w"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.23.1",
+    "@changesets/cli": "^2.24.1",
     "prettier": "^2.7.1",
-    "rollup": "^2.72.0",
+    "rollup": "^2.77.2",
     "typescript": "4.7.4",
     "web-ext-types": "^3.2.1"
   },
@@ -23,7 +23,8 @@
     "onlyBuiltDependencies": []
   },
   "dependencies": {
-    "@masknet/compartment": "^0.2.0"
+    "@masknet/compartment": "^0.2.2",
+    "@masknet/intrinsic-snapshot": "^0.1.0"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
