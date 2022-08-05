@@ -1,6 +1,6 @@
 import type { Background } from '../../types/manifest.js'
 import { isDebugMode } from '../debugger/enabled.js'
-import { parseDebugModeURL } from '../debugger/entry.js'
+import { parseDebugModeURL } from '../debugger/url.js'
 
 export function getExtensionOrigin(extensionID: string) {
     return 'holoflows-extension://' + extensionID + '/'

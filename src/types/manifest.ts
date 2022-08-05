@@ -99,6 +99,11 @@ function parseBackground(manifest: object, normalized: Partial<NormalizedManifes
                 scripts: manifest.background.scripts,
             }
         }
+    } else {
+        normalized.background = {
+            kind: 'scripts',
+            scripts: [],
+        }
     }
     return true
 }

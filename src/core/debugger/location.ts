@@ -28,12 +28,14 @@ export function supportLocation_debug(mockingURL: URL, knowledge: CloneKnowledge
     const key = ['hash', 'host', 'hostname', 'href', 'origin', 'pathname', 'port', 'protocol', 'search'] as const
     for (const k of key) {
         emptyObjectOverride.set(intrinsic[k].get!, () => mockingURL[k])
-        emptyObjectOverride.set(intrinsic[k].set!, (part: string) => {
-            const newOne = new URL(mockingURL)
-            Reflect.set(newOne, k, part) // some properties might throw
-            mockingURL = newOne
-            onRedirect(mockingURL.href)
-        })
+        const setter = intrinsic[k].set
+        setter &&
+            emptyObjectOverride.set(setter, (part: string) => {
+                const newOne = new URL(mockingURL)
+                Reflect.set(newOne, k, part) // some properties might throw
+                mockingURL = newOne
+                onRedirect(mockingURL.href)
+            })
     }
 }
 function onDebugRedirect(url: string) {

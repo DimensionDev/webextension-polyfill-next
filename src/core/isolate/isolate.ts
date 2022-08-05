@@ -16,17 +16,6 @@ export const enum IsolateMode {
 }
 export class WebExtensionIsolate {
     /**
-     * Create an extension environment for an extension.
-     * @param extensionID The extension ID.
-     * @param manifest The manifest of the extension.
-     */
-    static create(extensionID: string, manifest: NormalizedManifest) {
-        if (this.#isolates.has(extensionID)) return this.#isolates.get(extensionID)!
-        const isolate = new WebExtensionIsolate(extensionID, manifest)
-        this.#isolates.set(extensionID, isolate)
-        return isolate
-    }
-    /**
      * The globalThis object of the isolate.
      */
     globalThis: typeof globalThis
@@ -55,7 +44,12 @@ export class WebExtensionIsolate {
         this.#ModuleResolveCapability.get(specifier)?.Resolve(module)
         this.#ModuleResolveCapability.delete(specifier)
     }
-    private constructor(public extensionID: string, public manifest: NormalizedManifest) {
+    /**
+     * Create an extension environment for an extension.
+     * @param extensionID The extension ID.
+     * @param manifest The manifest of the extension.
+     */
+    constructor(public extensionID: string, public manifest: NormalizedManifest) {
         console.log(`[WebExtension] Isolate ${extensionID} created.`)
 
         const knowledge: CloneKnowledge = {
@@ -100,7 +94,6 @@ export class WebExtensionIsolate {
         this.#ModuleResolveCapability.set(specifier, cap)
         return cap.Promise
     }
-    static #isolates = new Map<string, WebExtensionIsolate>()
     #Evaluators: Evaluators
     #Modules = new Map<string, Module>()
     #ModuleReverseMap = new Map<Module, string>()

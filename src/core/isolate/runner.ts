@@ -1,20 +1,20 @@
-import { from_v2, from_v3 } from '../../types/manifest.js'
+import { from_v2, from_v3, NormalizedManifest } from '../../types/manifest.js'
 import { isDebugMode } from '../debugger/enabled.js'
 import { unreachable } from '../utils/assert.js'
 import { getExtensionOrigin, isBackground, isExtensionOrigin } from '../utils/url.js'
 import { WebExtensionIsolate } from './isolate.js'
 
 export const reservedID = '150ea6ee-2b0a-4587-9879-0ca5dfc1d046'
-const registeredWebExtension = new Map<string, WebExtensionIsolate>()
+const registeredWebExtension = new Map<string, NormalizedManifest>()
+const startedWebExtension = new Map<string, WebExtensionIsolate>()
 function getProtocolExtension() {
-    if (registeredWebExtension.size !== 1) throw new TypeError(`Expected exactly one extension.`)
-    const [pair] = registeredWebExtension.entries()
+    if (startedWebExtension.size !== 1) throw new TypeError(`Expected exactly one extension.`)
+    const [pair] = startedWebExtension.entries()
     return pair!
 }
 
-export function registerAndStartWebExtension(extensionID: string, manifest: unknown) {
-    registerWebExtension(extensionID, manifest)
-    return startWebExtension(extensionID)
+export function getRegisteredExtensions() {
+    return [...registeredWebExtension.entries()]
 }
 
 export function registerWebExtension(extensionID: string, rawManifest: unknown) {
@@ -24,11 +24,19 @@ export function registerWebExtension(extensionID: string, rawManifest: unknown) 
     if (!manifest) throw new TypeError(`Extension ${extensionID} does not have a valid manifest.`)
 
     console.debug(`[WebExtension] Loading extension ${manifest.name}(${extensionID}) with manifest`, manifest)
+    registeredWebExtension.set(extensionID, manifest)
+}
 
-    if (isExtensionOrigin() || isDebugMode) {
-        hijackHTMLScript(() => isolate)
-    }
-    const isolate: WebExtensionIsolate = WebExtensionIsolate.create(extensionID, manifest)
+export async function startWebExtension(extensionID: string) {
+    if (startedWebExtension.has(extensionID)) return
+
+    const manifest = registeredWebExtension.get(extensionID)
+    if (!manifest) throw new TypeError(`Extension ${extensionID} is not registered.`)
+
+    if (isExtensionOrigin() || isDebugMode) hijackHTMLScript(() => isolate)
+
+    const isolate: WebExtensionIsolate = new WebExtensionIsolate(extensionID, manifest)
+    startedWebExtension.set(extensionID, isolate)
 
     if (isDebugMode) {
         Reflect.set(globalThis, 'i' + extensionID, isolate)
@@ -36,23 +44,16 @@ export function registerWebExtension(extensionID: string, rawManifest: unknown) 
         console.log(`Extension ${extensionID} registered on window.(i|g)${extensionID}`)
     }
 
-    registeredWebExtension.set(extensionID, isolate)
-}
-
-export async function startWebExtension(id: string) {
-    const isolate = registeredWebExtension.get(id)
-    if (!isolate) throw new TypeError(`Extension ${id} is not registered.`)
-
-    if (isBackground(id, isolate.manifest.background)) {
+    if (isBackground(extensionID, isolate.manifest.background)) {
         if (isolate.manifest.background.kind === 'page') {
             await executeLoadedScriptTags()
         } else if (isolate.manifest.background.kind === 'scripts') {
             for (const url of isolate.manifest.background.scripts) {
-                const normalized = new URL(url, getExtensionOrigin(id)).toString()
+                const normalized = new URL(url, getExtensionOrigin(extensionID)).toString()
                 await isolate.import(normalized)
             }
         } else if (isolate.manifest.background.kind === 'worker') {
-            const normalized = new URL(isolate.manifest.background.worker, getExtensionOrigin(id)).toString()
+            const normalized = new URL(isolate.manifest.background.worker, getExtensionOrigin(extensionID)).toString()
             await isolate.import(normalized)
         } else unreachable(isolate.manifest.background)
     } else if (isExtensionOrigin()) {
@@ -81,6 +82,8 @@ async function executeLoadedScriptTags() {
 
     const [id, isolate] = getProtocolExtension()
     const executed = new WeakSet<HTMLScriptElement>()
+
+    if (isDebugMode) executed.add(document.querySelector('[data-no-execute]')!)
 
     while (true) {
         for (const script of Array.from(document.getElementsByTagName('script'))) {

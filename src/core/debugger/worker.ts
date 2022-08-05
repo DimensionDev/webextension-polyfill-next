@@ -1,15 +1,10 @@
 import type { CloneKnowledge } from '@masknet/intrinsic-snapshot'
-import { debugModeURLRewrite } from './entry.js'
+import { debugModeURLRewrite } from './url.js'
 
 /** @internal */
 export function supportWorker_debug(extensionID: string, knowledge: CloneKnowledge) {
-    knowledge.emptyObjectOverride.set(
-        Worker,
-        new Proxy(Worker, {
-            construct(target, args, newTarget) {
-                args[0] = debugModeURLRewrite(extensionID, args[0])
-                return Reflect.construct(target, args, newTarget)
-            },
-        }),
-    )
+    knowledge.emptyObjectOverride.set(Worker, function (scriptURL: string | URL, options?: WorkerOptions | undefined) {
+        const url = debugModeURLRewrite(extensionID, new URL(scriptURL))
+        return Reflect.construct(Worker, [url, options])
+    })
 }
