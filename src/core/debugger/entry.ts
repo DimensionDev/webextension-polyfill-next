@@ -1,5 +1,4 @@
 import { Environment } from '../../types/constants.js'
-import type { Manifest } from '../../types/extension.js'
 import { getExtensionOrigin } from '../utils/url.js'
 
 export const isDebugMode = location.hostname === 'localhost'
@@ -12,18 +11,16 @@ export interface ExtensionMock {
 }
 export type MockType = BackgroundMock | ExtensionMock
 
-export function parseDebugModeURL(extensionID: string, manifest: Manifest): MockType {
+export function parseDebugModeURL(extensionID: string): MockType {
     const param = new URLSearchParams(location.search)
     const type = param.get('type')
     let src = param.get('url')
     const base = getExtensionOrigin(extensionID)
-    if (src === '_options_') src = new URL(manifest.options_ui!.page, base).toString()
-    if (src === '_popup_') src = new URL(manifest.browser_action!.default_popup!, base).toString()
 
     if (type === 'b') return { env: Environment.Background }
     if (!src) throw new TypeError('Mocking this kind of page requires a url.')
 
-    if (type === 'p') return { env: Environment.ProtocolPage, href: src }
+    if (type === 'p') return { env: Environment.ProtocolPage, href: new URL(src, base).toString() }
     else if (type === 'm') return { env: Environment.ContentScript, href: src }
     else {
         throw new TypeError(

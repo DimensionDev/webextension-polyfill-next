@@ -1,6 +1,6 @@
 import { Evaluators, imports, Module, ModuleNamespace, VirtualModuleRecord } from '@masknet/compartment'
 import { clone, CloneKnowledge } from '@masknet/intrinsic-snapshot'
-import type { Manifest } from '../../types/extension.js'
+import type { NormalizedManifest } from '../../types/manifest.js'
 import { getExtensionOrigin } from '../utils/url.js'
 import { supportLocation_debug } from '../debugger/location.js'
 import { isDebugMode } from '../debugger/entry.js'
@@ -17,7 +17,7 @@ export class WebExtensionIsolate {
      * @param manifest The manifest of the extension.
      * @param debugModeLocation The location of the extension, only used in debug mode.
      */
-    static create(extensionID: string, manifest: Manifest, debugModeLocation: string) {
+    static create(extensionID: string, manifest: NormalizedManifest, debugModeLocation: string) {
         if (this.#isolates.has(extensionID)) return this.#isolates.get(extensionID)!
         const isolate = new WebExtensionIsolate(extensionID, manifest, debugModeLocation)
         this.#isolates.set(extensionID, isolate)
@@ -52,7 +52,7 @@ export class WebExtensionIsolate {
         this.#ModuleResolveCapability.get(specifier)?.Resolve(module)
         this.#ModuleResolveCapability.delete(specifier)
     }
-    private constructor(public extensionID: string, public manifest: Manifest, debugModeLocation: string) {
+    private constructor(public extensionID: string, public manifest: NormalizedManifest, debugModeLocation: string) {
         console.log(`[WebExtension] Isolate ${extensionID} created.`)
 
         const knowledge: CloneKnowledge = {
