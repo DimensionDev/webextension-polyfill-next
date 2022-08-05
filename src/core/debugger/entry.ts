@@ -1,33 +1,11 @@
-import { Environment } from '../../types/constants.js'
 import { getExtensionOrigin } from '../utils/url.js'
+import { isDebugMode } from './enabled.js'
 
-export const isDebugMode = location.hostname === 'localhost'
-export interface BackgroundMock {
-    env: Environment.Background
-}
-export interface ExtensionMock {
-    env: Environment.ContentScript | Environment.ProtocolPage
-    href: string
-}
-export type MockType = BackgroundMock | ExtensionMock
-
-export function parseDebugModeURL(extensionID: string): MockType {
+export function parseDebugModeURL(): URL {
     const param = new URLSearchParams(location.search)
-    const type = param.get('type')
     let src = param.get('url')
-    const base = getExtensionOrigin(extensionID)
 
-    if (type === 'b') return { env: Environment.Background }
-    if (!src) throw new TypeError('Mocking this kind of page requires a url.')
-
-    if (type === 'p') return { env: Environment.ProtocolPage, href: new URL(src, base).toString() }
-    else if (type === 'm') return { env: Environment.ContentScript, href: src }
-    else {
-        throw new TypeError(
-            'To debug, ?type= must be one of (b)ackground, (p)rotocol-page (holoflows-extension://.../), (c)ontent-script (used to debug content script), found ' +
-                type,
-        )
-    }
+    return new URL(src!)
 }
 
 export function debugModeURLRewrite(extensionID: string, url: string): string {

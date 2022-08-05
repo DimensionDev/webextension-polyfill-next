@@ -1,25 +1,28 @@
 import { Evaluators, imports, Module, ModuleNamespace, VirtualModuleRecord } from '@masknet/compartment'
 import { clone, CloneKnowledge } from '@masknet/intrinsic-snapshot'
 import type { NormalizedManifest } from '../../types/manifest.js'
-import { getExtensionOrigin } from '../utils/url.js'
+import { locationDebugModeAware } from '../utils/url.js'
 import { supportLocation_debug } from '../debugger/location.js'
-import { isDebugMode } from '../debugger/entry.js'
+import { isDebugMode } from '../debugger/enabled.js'
 import { supportWorker_debug } from '../debugger/worker.js'
 import { supportObjectURL } from './api/URL.js'
 import { supportOpenAndClose } from './api/open-close.js'
 import { rejectEvaluator } from './api/evaluator.js'
 import { NewPromiseCapability, PromiseCapability } from '../utils/promise.js'
 
+export const enum IsolateMode {
+    Protocol,
+    ContentScript,
+}
 export class WebExtensionIsolate {
     /**
      * Create an extension environment for an extension.
      * @param extensionID The extension ID.
      * @param manifest The manifest of the extension.
-     * @param debugModeLocation The location of the extension, only used in debug mode.
      */
-    static create(extensionID: string, manifest: NormalizedManifest, debugModeLocation: string) {
+    static create(extensionID: string, manifest: NormalizedManifest) {
         if (this.#isolates.has(extensionID)) return this.#isolates.get(extensionID)!
-        const isolate = new WebExtensionIsolate(extensionID, manifest, debugModeLocation)
+        const isolate = new WebExtensionIsolate(extensionID, manifest)
         this.#isolates.set(extensionID, isolate)
         return isolate
     }
@@ -52,7 +55,7 @@ export class WebExtensionIsolate {
         this.#ModuleResolveCapability.get(specifier)?.Resolve(module)
         this.#ModuleResolveCapability.delete(specifier)
     }
-    private constructor(public extensionID: string, public manifest: NormalizedManifest, debugModeLocation: string) {
+    private constructor(public extensionID: string, public manifest: NormalizedManifest) {
         console.log(`[WebExtension] Isolate ${extensionID} created.`)
 
         const knowledge: CloneKnowledge = {
@@ -62,15 +65,16 @@ export class WebExtensionIsolate {
         }
         if (isDebugMode) {
             supportWorker_debug(extensionID, knowledge)
-            if (debugModeLocation) {
-                supportLocation_debug(new URL(debugModeLocation, getExtensionOrigin(extensionID)), knowledge)
-            }
+            supportLocation_debug(new URL(locationDebugModeAware().toString()), knowledge)
         }
         supportObjectURL(extensionID, knowledge)
         supportOpenAndClose(extensionID, knowledge)
         rejectEvaluator(knowledge)
 
-        // To be secure, we should pre-clone the globalThis at first, then clone it again for each initialization.
+        // TODO: To be secure, we should pre-clone the globalThis at first, then clone it again for each initialization.
+        // TODO: for IsolateMode.Protocol, we should try to give the direct access to the intrinsic,
+        //       but we need to take care of something that can:
+        //           return the reference to globalThis. But does that mean we need to clone the whole DOM?
         this.globalThis = clone(globalThis, knowledge)
         this.#Evaluators = new Evaluators({
             globalThis: this.globalThis,
