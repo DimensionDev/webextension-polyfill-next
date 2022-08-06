@@ -15,19 +15,23 @@
     "bundle:watch": "rollup -c -w"
   },
   "devDependencies": {
-    "@changesets/cli": "^2.24.1",
+    "@changesets/cli": "^2.24.2",
+    "@masknet/static-module-record-swc": "^0.3.2",
+    "@swc/core": "^1.2.223",
+    "@types/gulp": "^4.0.9",
     "c8": "^7.12.0",
+    "gulp": "^4.0.2",
     "prettier": "^2.7.1",
     "rollup": "^2.77.2",
     "typescript": "4.7.4",
-    "vitest": "^0.20.3",
+    "vitest": "^0.21.0",
     "web-ext-types": "^3.2.1"
   },
   "pnpm": {
     "onlyBuiltDependencies": []
   },
   "dependencies": {
-    "@masknet/compartment": "^0.2.2",
+    "@masknet/compartment": "^0.2.3",
     "@masknet/intrinsic-snapshot": "^0.1.0"
   },
   "publishConfig": {
