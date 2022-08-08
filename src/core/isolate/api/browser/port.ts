@@ -1,5 +1,5 @@
-import { FrameworkRPC } from "../../../rpc/framework-rpc.js"
-import { clearPortListener, createPortListener } from "./listener.js"
+import { FrameworkRPC } from '../../../rpc/framework-rpc.js'
+import { clearPortListener, createPortListener } from './listener.js'
 
 function generateRandomID() {
     return Math.random().toString(16).slice(3)
