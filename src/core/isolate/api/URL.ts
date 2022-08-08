@@ -29,7 +29,7 @@ function revokeObjectURLHost(extensionID: string): (url: string) => void {
         // FrameworkRPC['URL.revokeObjectURL'](extensionID, id)
     }
 }
-function getIDFromBlobURL(x: string) {
+export function getIDFromBlobURL(x: string) {
     if (x.startsWith('blob:')) return new URL(new URL(x).pathname).pathname.replace(/^\//, '')
     return undefined
 }
