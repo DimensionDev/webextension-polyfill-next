@@ -20,3 +20,9 @@ export function isBackground(id: string, bg: Background) {
     if (bg.kind === 'worker' && url.pathname === '/_generated_background_worker.js') return true
     return false
 }
+
+export function getBackgroundPageURL(id: string, bg: Background): URL {
+    if (bg.kind === 'page') return new URL(bg.page, getExtensionOrigin(id))
+    if (bg.kind === 'scripts') return new URL('/_generated_background_page.html', getExtensionOrigin(id))
+    throw new Error('This feature is not available in Manifest V3')
+}

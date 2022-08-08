@@ -1,8 +1,12 @@
+import { clone, CloneKnowledge } from '@masknet/intrinsic-snapshot'
 import type { NormalizedManifest } from '../../../../types/manifest.js'
+import { supportLocation_mock } from '../../../debugger/location.js'
 import { FrameworkRPC } from '../../../rpc/framework-rpc.js'
 import { internalRPC } from '../../../rpc/internal-rpc.js'
-import { getExtensionOrigin } from '../../../utils/url.js'
+import { getBackgroundPageURL, getExtensionOrigin, isBackground } from '../../../utils/url.js'
+import { startedWebExtension } from '../../runner.js'
 import { getIDFromBlobURL } from '../URL.js'
+import { getInternalStorage } from './internal-storage.js'
 import { createEventListener } from './listener.js'
 import { createRuntimeSendMessage, sendMessageWithResponse } from './message.js'
 import { createPort } from './port.js'
@@ -13,6 +17,10 @@ export function createBrowser(extensionID: string, manifest: NormalizedManifest,
     api.downloads = createBrowserDownload() as typeof browser.downloads
     api.runtime = createBrowserRuntime() as typeof browser.runtime
     api.tabs = createBrowserTabs() as typeof browser.tabs
+    api.storage = createBrowserStorage() as typeof browser.storage
+    api.webNavigation = createWebNavigation() as typeof browser.webNavigation
+    api.extension = createBrowserExtension() as typeof browser.extension
+    api.permissions = createBrowserPermission() as typeof browser.permissions
 
     return api
 
@@ -77,6 +85,119 @@ export function createBrowser(extensionID: string, manifest: NormalizedManifest,
             ): Promise<void | U> {
                 PartialImplemented(options, [])
                 return sendMessageWithResponse(extensionID, extensionID, tabId, message)
+            },
+        }
+    }
+
+    function createBrowserStorage(): Partial<typeof browser.storage> {
+        const local: browser.storage.StorageArea = {
+            clear() {
+                return FrameworkRPC['browser.storage.local.clear'](extensionID)
+            },
+            remove(...args) {
+                return FrameworkRPC['browser.storage.local.remove'](extensionID, ...args)
+            },
+            set(...args) {
+                return FrameworkRPC['browser.storage.local.set'](extensionID, ...args)
+            },
+            async get(keys) {
+                /** Host not accepting { a: 1 } as keys */
+                if (Array.isArray(keys)) {
+                    // no need to change
+                } else if (typeof keys === 'string') keys = [keys]
+                else if (typeof keys === 'object') {
+                    if (keys === null) keys = null
+                    else keys = Object.keys(keys)
+                } else keys = null
+
+                const result = await FrameworkRPC['browser.storage.local.get'](extensionID, keys)
+
+                if (Array.isArray(keys)) return result
+                else if (typeof keys === 'object' && keys !== null) {
+                    return { ...(keys as object), ...result }
+                }
+                return result
+            },
+        }
+        return { local }
+    }
+
+    function createWebNavigation(): Partial<typeof browser.webNavigation> {
+        return {
+            onCommitted: createEventListener(extensionID, 'browser.webNavigation.onCommitted'),
+            onCompleted: createEventListener(extensionID, 'browser.webNavigation.onCompleted'),
+            onDOMContentLoaded: createEventListener(extensionID, 'browser.webNavigation.onDOMContentLoaded'),
+        }
+    }
+
+    function createBrowserExtension(): Partial<typeof browser.extension> {
+        let window: any
+        return {
+            getBackgroundPage() {
+                if (window) return window
+                if (isBackground(extensionID, manifest.background)) {
+                    window = startedWebExtension.get(extensionID)!.globalThis
+                } else {
+                    const knowledge: CloneKnowledge = {
+                        clonedFromOriginal: new Map(),
+                        descriptorOverride: new Map(),
+                        emptyObjectOverride: new Map(),
+                    }
+                    knowledge.clonedFromOriginal.set(Object.prototype, Object.prototype)
+                    knowledge.clonedFromOriginal.set(Function.prototype, Function.prototype)
+                    supportLocation_mock(getBackgroundPageURL(extensionID, manifest.background), knowledge, () => {
+                        throw new Error('Cannot redirect the background page.')
+                    })
+                    const proxy = Proxy.revocable({}, {})
+                    proxy.revoke()
+                    window = {
+                        __proto__: proxy.proxy,
+                        location: clone(location, knowledge),
+                    }
+                }
+            },
+        }
+    }
+
+    function createBrowserPermission(): Partial<typeof browser.permissions> {
+        return {
+            request: async (req) => {
+                const userAction = true
+                if (userAction) {
+                    getInternalStorage(extensionID, (store) => {
+                        const old = store.dynamicRequestedPermissions || { origins: [], permissions: [] }
+                        const origins = new Set(old.origins)
+                        const permissions = new Set(old.permissions)
+                        ;(req.origins || []).forEach((x) => origins.add(x))
+                        ;(req.permissions || []).forEach((x) => permissions.add(x))
+                        old.origins = Array.from(origins)
+                        old.permissions = Array.from(permissions)
+                        store.dynamicRequestedPermissions = old
+                    })
+                }
+                return userAction
+            },
+            contains: async (query) => {
+                const originsQuery = query.origins || []
+                const permissionsQuery = query.permissions || []
+                const requested = await getInternalStorage(extensionID)
+
+                const hasOrigins = new Set<string>()
+                const hasPermissions = new Set<string>()
+                requested.dynamicRequestedPermissions?.origins.forEach((x) => hasOrigins.add(x))
+                requested.dynamicRequestedPermissions?.permissions.forEach((x) => hasPermissions.add(x))
+
+                // permissions does not distinguish permission or url
+                ;(manifest.permissions || []).forEach((x) => hasPermissions.add(x))
+                ;(manifest.permissions || []).forEach((x) => hasOrigins.add(x))
+                if (originsQuery.some((x) => !hasOrigins.has(x))) return false
+                if (permissionsQuery.some((x) => !hasPermissions.has(x))) return false
+                return true
+            },
+            remove: async () => false,
+            getAll: async () => {
+                const all = await getInternalStorage(extensionID)
+                return JSON.parse(JSON.stringify(all.dynamicRequestedPermissions || {}))
             },
         }
     }

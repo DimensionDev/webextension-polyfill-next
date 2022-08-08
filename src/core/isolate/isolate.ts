@@ -2,7 +2,7 @@ import { Evaluators, imports, Module, ModuleNamespace, VirtualModuleRecord } fro
 import { clone, CloneKnowledge } from '@masknet/intrinsic-snapshot'
 import type { NormalizedManifest } from '../../types/manifest.js'
 import { locationDebugModeAware } from '../utils/url.js'
-import { supportLocation_debug } from '../debugger/location.js'
+import { supportLocation_mock } from '../debugger/location.js'
 import { isDebugMode } from '../debugger/enabled.js'
 import { supportWorker_debug } from '../debugger/worker.js'
 import { supportObjectURL } from './api/URL.js'
@@ -59,7 +59,7 @@ export class WebExtensionIsolate {
         }
         if (isDebugMode) {
             supportWorker_debug(extensionID, knowledge)
-            supportLocation_debug(new URL(locationDebugModeAware().toString()), knowledge)
+            supportLocation_mock(new URL(locationDebugModeAware().toString()), knowledge)
         }
         supportObjectURL(extensionID, knowledge)
         supportOpenAndClose(extensionID, knowledge)
