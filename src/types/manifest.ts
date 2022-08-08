@@ -22,6 +22,11 @@ export interface BackgroundWorker {
     worker: string
 }
 
+/**
+ * Parse a NormalizedManifest from a Manifest V2 JSON.
+ * @param manifest A manifest v2 object
+ * @returns The normalized manifest
+ */
 export function from_v2(manifest: unknown): NormalizedManifest | null {
     manifest = JSON.parse(JSON.stringify(manifest))
     if (!isObject(manifest)) return null
@@ -36,6 +41,12 @@ export function from_v2(manifest: unknown): NormalizedManifest | null {
     if (!parseBackground(manifest, normalized)) return null
     return normalized as NormalizedManifest
 }
+
+/**
+ * Parse a NormalizedManifest from a Manifest V3 JSON.
+ * @param manifest A manifest v3 object
+ * @returns The normalized manifest
+ */
 export function from_v3(manifest: unknown): NormalizedManifest | null {
     manifest = JSON.parse(JSON.stringify(manifest))
     if (!isObject(manifest)) return null

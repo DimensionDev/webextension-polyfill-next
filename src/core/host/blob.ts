@@ -1,5 +1,8 @@
 import type { FrameworkStringOrBinary } from '../../types/RPC.js'
 
+/**
+ * Encode a string/Blob/BufferSource to the format that can be recognized by the Framework side.
+ */
 export async function encodeStringOrBufferSource(val: Blob | string | BufferSource): Promise<FrameworkStringOrBinary> {
     if (typeof val === 'string') return { type: 'text', content: val }
     if (val instanceof Blob) {
@@ -15,6 +18,10 @@ export async function encodeStringOrBufferSource(val: Blob | string | BufferSour
     console.error(val)
     throw new TypeError('Invalid type')
 }
+
+/**
+ * Decode a string/Blob/BufferSource from the format that returned by the Framework side.
+ */
 export function decodeStringOrBufferSource(val: FrameworkStringOrBinary): Blob | string | ArrayBuffer | null {
     if (val.type === 'text') return val.content
     if (val.type === 'blob') return new Blob([Uint8ArrayFromBase64(val.content)], { type: val.mimeType })
@@ -25,11 +32,11 @@ export function decodeStringOrBufferSource(val: FrameworkStringOrBinary): Blob |
 }
 
 function Uint8ArrayFromBase64(sBase64: string, nBlockSize?: number): Uint8Array {
-    TODO: throw new TypeError()
-    // return new Uint8Array(Buffer.from(sBase64, 'base64'))
+    throw new TypeError()
+    // TODO: return new Uint8Array(Buffer.from(sBase64, 'base64'))
 }
 
 function Uint8ArrayToBase64(aBytes: Uint8Array): string {
-    TODO: throw new TypeError()
-    // return Buffer.from(aBytes).toString('base64')
+    throw new TypeError()
+    // TODO: return Buffer.from(aBytes).toString('base64')
 }

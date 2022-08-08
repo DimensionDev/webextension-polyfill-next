@@ -19,7 +19,7 @@ export interface Message_onPortCreate {
 export interface Message_onPortMessage {
     type: 'onPortMessage'
     portID: string
-    message: any
+    message: unknown
 }
 
 export interface Message_onPortDisconnect {

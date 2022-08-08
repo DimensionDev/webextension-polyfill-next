@@ -1,7 +1,11 @@
 import type { CloneKnowledge } from '@masknet/intrinsic-snapshot'
 import { debugModeURLRewrite } from './url.js'
 
-/** @internal */
+/**
+ * Add URL rewrite for the Worker constructor so it can be created in the debug mode.
+ * @param extensionID The extension ID
+ * @param knowledge
+ */
 export function supportWorker_debug(extensionID: string, knowledge: CloneKnowledge) {
     knowledge.emptyObjectOverride.set(Worker, function (scriptURL: string | URL, options?: WorkerOptions | undefined) {
         const url = debugModeURLRewrite(extensionID, new URL(scriptURL))

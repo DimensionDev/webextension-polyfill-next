@@ -1,11 +1,16 @@
 import type { NormalizedManifest } from '../../../../types/manifest.js'
 import { FrameworkRPC } from '../../../rpc/framework.js'
+import { getExtensionOrigin } from '../../../utils/url.js'
 import { getIDFromBlobURL } from '../URL.js'
+import { createEventListener } from './listener.js'
+import { createRuntimeSendMessage } from './message.js'
+import { createPort } from './port.js'
 
 export function createBrowser(extensionID: string, manifest: NormalizedManifest, proto = Object.prototype) {
     const api = Object.create(proto) as Partial<typeof browser>
 
     api.downloads = createBrowserDownload() as typeof browser.downloads
+    api.runtime = createBrowserRuntime() as typeof browser.runtime
 
     return api
 
@@ -21,6 +26,22 @@ export function createBrowser(extensionID: string, manifest: NormalizedManifest,
                 await FrameworkRPC['browser.downloads.download'](extensionID, nextOption)
                 return 0
             },
+        }
+    }
+
+    function createBrowserRuntime(): Partial<typeof browser.runtime> {
+        return {
+            getURL: (path) => getExtensionOrigin(extensionID) + path,
+            getManifest: () => JSON.parse(JSON.stringify(manifest.rawManifest)),
+            onMessage: createEventListener(extensionID, 'browser.runtime.onMessage'),
+            onInstalled: createEventListener(extensionID, 'browser.runtime.onInstall'),
+            connect: (...args) => createPort(extensionID, undefined, undefined, ...args as any),
+            onConnect: createEventListener(extensionID, 'browser.runtime.onConnect'),
+            sendMessage: createRuntimeSendMessage(extensionID),
+            get id() {
+                return extensionID
+            },
+            set id(val) {},
         }
     }
 }

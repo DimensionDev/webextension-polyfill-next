@@ -1,6 +1,9 @@
 import { getExtensionOrigin } from '../utils/url.js'
 import { isDebugMode } from './enabled.js'
 
+/**
+ * Parse the mocking URL in the debug mode.
+ */
 export function parseDebugModeURL(): URL {
     const param = new URLSearchParams(location.search)
     let src = param.get('src')
@@ -8,6 +11,14 @@ export function parseDebugModeURL(): URL {
     return new URL(src!)
 }
 
+/**
+ * Write a URL to it's debug version:
+ *
+ * `holoflows-extension://extension-id/data.json` becomes `http://127.0.0.1/extension/extension-id/data.json`
+ * @param extensionID The extension ID
+ * @param url URL
+ * @returns Mocking URL
+ */
 export function debugModeURLRewrite(extensionID: string, url: string | URL): URL {
     if (!isDebugMode) return new URL(url)
     const u = new URL(url, getExtensionOrigin(extensionID))

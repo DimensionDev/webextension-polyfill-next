@@ -2,7 +2,12 @@ import type { CloneKnowledge } from '@masknet/intrinsic-snapshot'
 
 const intrinsic = typeof location === 'object' ? Object.getOwnPropertyDescriptors(location) : null
 
-/** @internal */
+/**
+ * Add support for mocking a fake Location object for debugging.
+ * @param mockingURL Mocking URL
+ * @param knowledge
+ * @param onRedirect Callback when the location is changed
+ */
 export function supportLocation_debug(mockingURL: URL, knowledge: CloneKnowledge, onRedirect = onDebugRedirect) {
     if (!intrinsic) return
     const { emptyObjectOverride, descriptorOverride } = knowledge
