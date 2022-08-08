@@ -1,4 +1,4 @@
-import { FrameworkRPC } from '../../../rpc/framework.js'
+import { FrameworkRPC } from '../../../rpc/framework-rpc.js'
 import { EventStore, TwoWayMessagePromiseResolver } from './listener.js'
 
 /**

@@ -1,5 +1,5 @@
 import type { NormalizedManifest } from '../../types/manifest.js'
-import { getRegisteredExtensions } from '../isolate/runner.js'
+import { registeredWebExtension } from '../isolate/runner.js'
 import { getExtensionOrigin } from '../utils/url.js'
 
 let fCount = 0
@@ -28,7 +28,7 @@ export function showDebugEntry() {
         </label>
         <h2>Registered Extensions</h2>
         <ul>
-            ${getRegisteredExtensions().map(list)}
+            ${[...registeredWebExtension.entries()].map(list)}
         </ul>
     `
     const a = shadow.querySelector('#cs') as any

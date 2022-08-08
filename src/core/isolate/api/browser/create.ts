@@ -1,9 +1,10 @@
 import type { NormalizedManifest } from '../../../../types/manifest.js'
-import { FrameworkRPC } from '../../../rpc/framework.js'
+import { FrameworkRPC } from '../../../rpc/framework-rpc.js'
+import { internalRPC } from '../../../rpc/internal-rpc.js'
 import { getExtensionOrigin } from '../../../utils/url.js'
 import { getIDFromBlobURL } from '../URL.js'
 import { createEventListener } from './listener.js'
-import { createRuntimeSendMessage } from './message.js'
+import { createRuntimeSendMessage, sendMessageWithResponse } from './message.js'
 import { createPort } from './port.js'
 
 export function createBrowser(extensionID: string, manifest: NormalizedManifest, proto = Object.prototype) {
@@ -11,6 +12,7 @@ export function createBrowser(extensionID: string, manifest: NormalizedManifest,
 
     api.downloads = createBrowserDownload() as typeof browser.downloads
     api.runtime = createBrowserRuntime() as typeof browser.runtime
+    api.tabs = createBrowserTabs() as typeof browser.tabs
 
     return api
 
@@ -35,13 +37,47 @@ export function createBrowser(extensionID: string, manifest: NormalizedManifest,
             getManifest: () => JSON.parse(JSON.stringify(manifest.rawManifest)),
             onMessage: createEventListener(extensionID, 'browser.runtime.onMessage'),
             onInstalled: createEventListener(extensionID, 'browser.runtime.onInstall'),
-            connect: (...args) => createPort(extensionID, undefined, undefined, ...args as any),
+            connect: (...args) => createPort(extensionID, undefined, undefined, ...(args as any)),
             onConnect: createEventListener(extensionID, 'browser.runtime.onConnect'),
             sendMessage: createRuntimeSendMessage(extensionID),
             get id() {
                 return extensionID
             },
             set id(val) {},
+        }
+    }
+
+    function createBrowserTabs(): Partial<typeof browser.tabs> {
+        return {
+            async executeScript(tabID, details) {
+                PartialImplemented(details, ['code', 'file', 'runAt'])
+                if (details.code) throw new Error('Cannot use "code" options due to Content Security Policy.')
+                await internalRPC.executeContentScript(tabID!, extensionID, manifest, details)
+                return []
+            },
+            create(...args) {
+                return FrameworkRPC['browser.tabs.create'](extensionID, ...args)
+            },
+            async remove(tabID) {
+                let t: number[]
+                if (!Array.isArray(tabID)) t = [tabID]
+                else t = tabID
+                await Promise.all(t.map((x) => FrameworkRPC['browser.tabs.remove'](extensionID, x)))
+            },
+            query(...args) {
+                return FrameworkRPC['browser.tabs.query'](extensionID, ...args)
+            },
+            update(...args) {
+                return FrameworkRPC['browser.tabs.update'](extensionID, ...args)
+            },
+            async sendMessage<T = any, U = object>(
+                tabId: number,
+                message: T,
+                options?: { frameId?: number | undefined } | undefined,
+            ): Promise<void | U> {
+                PartialImplemented(options, [])
+                return sendMessageWithResponse(extensionID, extensionID, tabId, message)
+            },
         }
     }
 }

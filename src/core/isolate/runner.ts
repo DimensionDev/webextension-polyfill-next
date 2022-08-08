@@ -5,16 +5,12 @@ import { getExtensionOrigin, isBackground, isExtensionOrigin } from '../utils/ur
 import { WebExtensionIsolate } from './isolate.js'
 
 export const reservedID = '150ea6ee-2b0a-4587-9879-0ca5dfc1d046'
-const registeredWebExtension = new Map<string, NormalizedManifest>()
-const startedWebExtension = new Map<string, WebExtensionIsolate>()
+export const registeredWebExtension = new Map<string, NormalizedManifest>()
+export const startedWebExtension = new Map<string, WebExtensionIsolate>()
 function getProtocolExtension() {
     if (startedWebExtension.size !== 1) throw new TypeError(`Expected exactly one extension.`)
     const [pair] = startedWebExtension.entries()
     return pair!
-}
-
-export function getRegisteredExtensions() {
-    return [...registeredWebExtension.entries()]
 }
 
 export function registerWebExtension(extensionID: string, rawManifest: unknown) {
