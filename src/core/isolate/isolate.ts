@@ -9,6 +9,8 @@ import { supportObjectURL } from './api/URL.js'
 import { supportOpenAndClose } from './api/open-close.js'
 import { rejectEvaluator } from './api/evaluator.js'
 import { NewPromiseCapability, PromiseCapability } from '../utils/promise.js'
+import { createBrowser } from './api/browser/create.js'
+import { createChromeFromBrowser } from './api/chrome.js'
 
 export const enum IsolateMode {
     Protocol,
@@ -74,7 +76,14 @@ export class WebExtensionIsolate {
             globalThis: this.globalThis,
             importHook: (importSpecifier, importMeta) => this.#importHook(importSpecifier, importMeta),
         })
-        // TODO: define browser and chrome.
+        const browser = createBrowser(extensionID, manifest)
+        Object.defineProperty(this.globalThis, 'browser', {
+            get() { return browser },
+            set() { return true },
+            configurable: true,
+            enumerable: true,
+        })
+        Reflect.set(this.globalThis, 'chrome', createChromeFromBrowser(browser))
         // TODO: define fetch
     }
     #importHook(importSpecifier: string, importMeta: object): Promise<Module> {

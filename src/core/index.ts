@@ -1,6 +1,7 @@
 import { isDebugMode } from './debugger/enabled.js'
 import { showDebugEntry } from './debugger/entry-ui.js'
 import { registerWebExtension, startWebExtension } from './isolate/runner.js'
+import './rpc/debug-rpc.js'
 
 // Register here
 registerWebExtension('test', {

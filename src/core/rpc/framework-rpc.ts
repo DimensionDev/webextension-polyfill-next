@@ -13,7 +13,7 @@ import { onNormalMessage } from '../isolate/api/browser/message.js'
 import { createPort } from '../isolate/api/browser/port.js'
 
 /** Don't call this directly! Call FrameworkRPC.* instead */
-const ThisSideImplementation: FrameworkMayInvokeMethods = {
+export const ThisSideImplementation: FrameworkMayInvokeMethods = {
     // todo: check dispatch target's manifest
     'browser.webNavigation.onCommitted': dispatchNormalEvent.bind(null, 'browser.webNavigation.onCommitted', '*'),
     'browser.webNavigation.onDOMContentLoaded': dispatchNormalEvent.bind(
