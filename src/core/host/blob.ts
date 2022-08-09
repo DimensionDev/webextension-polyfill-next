@@ -31,12 +31,15 @@ export function decodeStringOrBufferSource(val: FrameworkStringOrBinary): Blob |
     return null
 }
 
-function Uint8ArrayFromBase64(sBase64: string, nBlockSize?: number): Uint8Array {
-    throw new TypeError()
-    // TODO: return new Uint8Array(Buffer.from(sBase64, 'base64'))
+function Uint8ArrayFromBase64(sBase64: string): Uint8Array {
+    return Uint8Array.from(atob(sBase64), (c) => c.charCodeAt(0))
 }
 
 function Uint8ArrayToBase64(aBytes: Uint8Array): string {
-    throw new TypeError()
-    // TODO: return Buffer.from(aBytes).toString('base64')
+    return btoa(
+        Array(aBytes.length)
+            .fill('')
+            .map((_, i) => String.fromCharCode(aBytes[i]!))
+            .join(''),
+    )
 }
