@@ -79,7 +79,9 @@ async function executeLoadedScriptTags() {
     const [id, isolate] = getProtocolExtension()
     const executed = new WeakSet<HTMLScriptElement>()
 
-    if (isDebugMode) executed.add(document.querySelector('[data-no-execute]')!)
+    if (isDebugMode) {
+        for (const d of document.querySelectorAll('[data-no-execute]')) executed.add(d as HTMLScriptElement)
+    }
 
     while (true) {
         for (const script of Array.from(document.getElementsByTagName('script'))) {

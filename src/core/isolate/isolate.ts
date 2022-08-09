@@ -14,6 +14,7 @@ import { createChromeFromBrowser } from './api/chrome.js'
 import { debugModeURLRewrite } from '../debugger/url.js'
 import { FrameworkRPC } from '../rpc/framework-rpc.js'
 import { decodeStringOrBufferSource } from '../host/blob.js'
+import { supportFetch, supportFetch_debug } from './api/fetch.js'
 
 const { HostExtensionImportReflection } = (() => {
     const Modules = new Map<string, VirtualModuleRecord>()
@@ -86,6 +87,7 @@ export class WebExtensionIsolate {
                 emptyObjectOverride: new WeakMap(),
                 descriptorOverride: new WeakMap(),
             }
+            supportFetch_debug(extensionID, knowledge)
             supportObjectURL_debug(extensionID, knowledge)
             supportWorker_debug_only(extensionID, knowledge)
             supportLocation_debug(new URL(locationDebugModeAware().toString()), knowledge)
@@ -95,6 +97,7 @@ export class WebExtensionIsolate {
         } else {
             // see https://developer.apple.com/documentation/webkit/wkcontentworld
             this.globalThis = globalThis
+            supportFetch(extensionID, globalThis)
             supportObjectURL(extensionID, globalThis)
             supportOpenAndClose(extensionID, globalThis)
         }

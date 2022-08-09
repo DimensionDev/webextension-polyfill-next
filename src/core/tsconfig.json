@@ -4,7 +4,7 @@
     "compilerOptions": {
         "outDir": "../../dist/core",
         "tsBuildInfoFile": "../../dist/core/.tsbuildinfo",
-        "lib": ["DOM", "ES2021"]
+        "lib": ["DOM", "DOM.Iterable", "ES2021"]
     },
     "include": ["./**/*.ts"]
 }
