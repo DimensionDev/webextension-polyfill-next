@@ -25,7 +25,7 @@ export function debugModeURLRewrite(extensionID: string, url: string | URL): URL
     if (u.protocol === 'holoflows-extension:') {
         u.protocol = location.protocol
         u.host = location.host
-        u.pathname = '/extension/' + extensionID + '/' + u.pathname
+        u.pathname = '/extension/' + extensionID + u.pathname
         console.debug('Rewrite ', url, 'to', u.toJSON())
         return u
     } else if (u.origin === location.origin) {

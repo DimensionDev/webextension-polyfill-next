@@ -2,12 +2,12 @@ import { Evaluators, imports, Module, ModuleNamespace, VirtualModuleRecord } fro
 import { clone, CloneKnowledge } from '@masknet/intrinsic-snapshot'
 import type { NormalizedManifest } from '../../types/manifest.js'
 import { getExtensionOrigin, locationDebugModeAware } from '../utils/url.js'
-import { supportLocation_mock } from '../debugger/location.js'
+import { supportLocation_debug } from '../debugger/location.js'
 import { isDebugMode } from '../debugger/enabled.js'
-import { supportWorker_debug } from '../debugger/worker.js'
-import { supportObjectURL } from './api/URL.js'
-import { supportOpenAndClose } from './api/open-close.js'
-import { rejectEvaluator } from './api/evaluator.js'
+import { supportWorker_debug_only } from '../debugger/worker.js'
+import { supportObjectURL, supportObjectURL_debug } from './api/URL.js'
+import { supportOpenAndClose, supportOpenAndClose_debug } from './api/open-close.js'
+import { rejectEvaluator_debug_only } from './api/evaluator.js'
 import { NewPromiseCapability, PromiseCapability } from '../utils/promise.js'
 import { createBrowser } from './api/browser/create.js'
 import { createChromeFromBrowser } from './api/chrome.js'
@@ -81,24 +81,24 @@ export class WebExtensionIsolate {
         console.log(`[WebExtension] Isolate ${extensionID} created.`)
         this.#ModuleSource = moduleSource
 
-        const knowledge: CloneKnowledge = {
-            clonedFromOriginal: new WeakMap(),
-            emptyObjectOverride: new WeakMap(),
-            descriptorOverride: new WeakMap(),
-        }
         if (isDebugMode) {
-            supportWorker_debug(extensionID, knowledge)
-            supportLocation_mock(new URL(locationDebugModeAware().toString()), knowledge)
+            const knowledge: CloneKnowledge = {
+                clonedFromOriginal: new WeakMap(),
+                emptyObjectOverride: new WeakMap(),
+                descriptorOverride: new WeakMap(),
+            }
+            supportObjectURL_debug(extensionID, knowledge)
+            supportWorker_debug_only(extensionID, knowledge)
+            supportLocation_debug(new URL(locationDebugModeAware().toString()), knowledge)
+            supportOpenAndClose_debug(extensionID, knowledge)
+            rejectEvaluator_debug_only(knowledge)
+            this.globalThis = clone(globalThis, knowledge)
+        } else {
+            // see https://developer.apple.com/documentation/webkit/wkcontentworld
+            this.globalThis = globalThis
+            supportObjectURL(extensionID, globalThis)
+            supportOpenAndClose(extensionID, globalThis)
         }
-        supportObjectURL(extensionID, knowledge)
-        supportOpenAndClose(extensionID, knowledge)
-        rejectEvaluator(knowledge)
-
-        // TODO: To be secure, we should pre-clone the globalThis at first, then clone it again for each initialization.
-        // TODO: for IsolateMode.Protocol, we should try to give the direct access to the intrinsic,
-        //       but we need to take care of something that can:
-        //           return the reference to globalThis. But does that mean we need to clone the whole DOM?
-        this.globalThis = clone(globalThis, knowledge)
         this.#Evaluators = new Evaluators({
             globalThis: this.globalThis,
             importHook: (importSpecifier, importMeta) => this.#importHook(importSpecifier, importMeta),

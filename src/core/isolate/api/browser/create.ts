@@ -1,10 +1,7 @@
-import { clone, CloneKnowledge } from '@masknet/intrinsic-snapshot'
 import type { NormalizedManifest } from '../../../../types/manifest.js'
-import { supportLocation_mock } from '../../../debugger/location.js'
 import { FrameworkRPC } from '../../../rpc/framework-rpc.js'
 import { internalRPC } from '../../../rpc/internal-rpc.js'
-import { getBackgroundPageURL, getExtensionOrigin, isBackground } from '../../../utils/url.js'
-import { startedWebExtension } from '../../runner.js'
+import { getExtensionOrigin } from '../../../utils/url.js'
 import { getIDFromBlobURL } from '../URL.js'
 import { getInternalStorage } from './internal-storage.js'
 import { createEventListener } from './listener.js'
@@ -19,7 +16,6 @@ export function createBrowser(extensionID: string, manifest: NormalizedManifest,
     api.tabs = createBrowserTabs() as typeof browser.tabs
     api.storage = createBrowserStorage() as typeof browser.storage
     api.webNavigation = createWebNavigation() as typeof browser.webNavigation
-    api.extension = createBrowserExtension() as typeof browser.extension
     api.permissions = createBrowserPermission() as typeof browser.permissions
 
     return api
@@ -127,35 +123,6 @@ export function createBrowser(extensionID: string, manifest: NormalizedManifest,
             onCommitted: createEventListener(extensionID, 'browser.webNavigation.onCommitted'),
             onCompleted: createEventListener(extensionID, 'browser.webNavigation.onCompleted'),
             onDOMContentLoaded: createEventListener(extensionID, 'browser.webNavigation.onDOMContentLoaded'),
-        }
-    }
-
-    function createBrowserExtension(): Partial<typeof browser.extension> {
-        let window: any
-        return {
-            getBackgroundPage() {
-                if (window) return window
-                if (isBackground(extensionID, manifest.background)) {
-                    window = startedWebExtension.get(extensionID)!.globalThis
-                } else {
-                    const knowledge: CloneKnowledge = {
-                        clonedFromOriginal: new Map(),
-                        descriptorOverride: new Map(),
-                        emptyObjectOverride: new Map(),
-                    }
-                    knowledge.clonedFromOriginal.set(Object.prototype, Object.prototype)
-                    knowledge.clonedFromOriginal.set(Function.prototype, Function.prototype)
-                    supportLocation_mock(getBackgroundPageURL(extensionID, manifest.background), knowledge, () => {
-                        throw new Error('Cannot redirect the background page.')
-                    })
-                    const proxy = Proxy.revocable({}, {})
-                    proxy.revoke()
-                    window = {
-                        __proto__: proxy.proxy,
-                        location: clone(location, knowledge),
-                    }
-                }
-            },
         }
     }
 

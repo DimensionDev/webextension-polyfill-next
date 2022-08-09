@@ -1,8 +1,15 @@
 import type { CloneKnowledge } from '@masknet/intrinsic-snapshot'
 import { encodeStringOrBufferSource } from '../../host/blob.js'
+import { FrameworkRPC } from '../../rpc/framework-rpc.js'
 
 const { createObjectURL, revokeObjectURL } = URL
-export function supportObjectURL(extensionID: string, knowledge: CloneKnowledge) {
+export function supportObjectURL(extensionID: string, global: typeof globalThis) {
+    const create = createObjectURLHost(extensionID)
+    const revoke = revokeObjectURLHost(extensionID)
+    global.URL.createObjectURL = create
+    global.URL.revokeObjectURL = revoke
+}
+export function supportObjectURL_debug(extensionID: string, knowledge: CloneKnowledge) {
     knowledge.emptyObjectOverride.set(createObjectURL, createObjectURLHost(extensionID))
     knowledge.emptyObjectOverride.set(revokeObjectURL, revokeObjectURLHost(extensionID))
 }
@@ -13,8 +20,7 @@ function createObjectURLHost(extensionID: string): (object: any) => string {
         const resourceID = getIDFromBlobURL(url)!
         if (obj instanceof Blob) {
             encodeStringOrBufferSource(obj).then((blob) => {
-                // TODO: call host
-                // FrameworkRPC['URL.createObjectURL'](extensionID, resourceID, blob)
+                FrameworkRPC['URL.createObjectURL'](extensionID, resourceID, blob)
             })
         }
         return url
@@ -25,8 +31,7 @@ function revokeObjectURLHost(extensionID: string): (url: string) => void {
     return (url: string) => {
         revokeObjectURL(url)
         const id = getIDFromBlobURL(url)!
-        // TODO: call host
-        // FrameworkRPC['URL.revokeObjectURL'](extensionID, id)
+        FrameworkRPC['URL.revokeObjectURL'](extensionID, id)
     }
 }
 export function getIDFromBlobURL(x: string) {
