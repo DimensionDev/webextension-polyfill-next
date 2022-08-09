@@ -1,7 +1,7 @@
 import { Evaluators, imports, Module, ModuleNamespace, VirtualModuleRecord } from '@masknet/compartment'
 import { clone, CloneKnowledge } from '@masknet/intrinsic-snapshot'
 import type { NormalizedManifest } from '../../types/manifest.js'
-import { getExtensionOrigin, locationDebugModeAware } from '../utils/url.js'
+import { getExtensionIDFromURL, getExtensionOrigin, locationDebugModeAware } from '../utils/url.js'
 import { supportLocation_debug } from '../debugger/location.js'
 import { isDebugMode } from '../debugger/enabled.js'
 import { supportWorker_debug_only } from '../debugger/worker.js'
@@ -15,20 +15,28 @@ import { debugModeURLRewrite } from '../debugger/url.js'
 import { FrameworkRPC } from '../rpc/framework-rpc.js'
 import { decodeStringOrBufferSource } from '../host/blob.js'
 
-export class ModuleSourceCache {
-    constructor(public id: string) {
-        Object.defineProperty(globalThis, `__holoflows_extension_${id}_register__`, {
-            value: (specifier: string, module: VirtualModuleRecord) => this.#moduleResolverCallback(specifier, module),
-        })
-    }
-    #Modules = new Map<string, VirtualModuleRecord>()
-    #ModuleResolveCapability = new Map<string, PromiseCapability<VirtualModuleRecord>>()
-    async #HostImportModuleSource(specifier: string) {
+const { HostExtensionImportReflection } = (() => {
+    const Modules = new Map<string, VirtualModuleRecord>()
+    const ModuleResolveCapability = new Map<string, PromiseCapability<VirtualModuleRecord>>()
+    // Callback of registering VirtualModuleRecord
+    Object.defineProperty(globalThis, `__HostModuleSourceRegister__`, {
+        value: function __HostModuleSourceRegister__(specifier: string, source: VirtualModuleRecord) {
+            if (Modules.has(specifier)) return
+            Modules.set(specifier, source)
+            // Module might be preloaded, so there might be no capability.
+            ModuleResolveCapability.get(specifier)?.Resolve(source)
+            ModuleResolveCapability.delete(specifier)
+        },
+    })
+    Object.defineProperty(globalThis, `__HostImportReflection__`, {
+        value: (url: string) => HostExtensionImportReflection(url),
+    })
+    async function importModuleSourceInner(specifier: string, extensionID: string) {
         if (isDebugMode) {
-            await import(debugModeURLRewrite(this.id, specifier).toString())
+            await import(debugModeURLRewrite(extensionID, specifier).toString())
         } else {
             // TODO: add a new framework API for this
-            const sourceText = await FrameworkRPC.fetch(this.id, {
+            const sourceText = await FrameworkRPC.fetch(extensionID, {
                 method: 'GET',
                 url: specifier,
                 body: null,
@@ -36,29 +44,21 @@ export class ModuleSourceCache {
             })
             const code = decodeStringOrBufferSource(sourceText.data)
             if (typeof code !== 'string') throw new Error(`Cannot load source file ${specifier}`)
-            await FrameworkRPC.eval(this.id, code)
+            await FrameworkRPC.eval(extensionID, code)
         }
     }
-    async HostImportModuleSource(specifier: string) {
-        if (this.#Modules.has(specifier)) return this.#Modules.get(specifier)!
+
+    async function HostExtensionImportReflection(specifier: string, extensionID = getExtensionIDFromURL(specifier)) {
+        if (!extensionID) throw new TypeError(`Cannot import module ${specifier} out of an extensionID context.`)
+        if (Modules.has(specifier)) return Modules.get(specifier)!
         const capability = NewPromiseCapability<VirtualModuleRecord>()
-        this.#ModuleResolveCapability.set(specifier, capability)
-        this.#HostImportModuleSource(specifier).catch(capability.Reject)
+        ModuleResolveCapability.set(specifier, capability)
+        importModuleSourceInner(specifier, extensionID).catch(capability.Reject)
         return capability.Promise
     }
-    /**
-     * Add a module in the isolate's cache.
-     * @param specifier The module specifier.
-     * @param source The VirtualModuleRecord representation of the target module.
-     */
-    #moduleResolverCallback(specifier: string, source: VirtualModuleRecord) {
-        if (this.#Modules.has(specifier)) return
-        this.#Modules.set(specifier, source)
-        // Module might be preloaded, so there might be no capability.
-        this.#ModuleResolveCapability.get(specifier)?.Resolve(source)
-        this.#ModuleResolveCapability.delete(specifier)
-    }
-}
+    return { HostExtensionImportReflection }
+})()
+
 export class WebExtensionIsolate {
     /**
      * The globalThis object of the isolate.
@@ -77,9 +77,8 @@ export class WebExtensionIsolate {
      * @param extensionID The extension ID.
      * @param manifest The manifest of the extension.
      */
-    constructor(public extensionID: string, public manifest: NormalizedManifest, moduleSource: ModuleSourceCache) {
+    constructor(public extensionID: string, public manifest: NormalizedManifest) {
         console.log(`[WebExtension] Isolate ${extensionID} created.`)
-        this.#ModuleSource = moduleSource
 
         if (isDebugMode) {
             const knowledge: CloneKnowledge = {
@@ -131,7 +130,7 @@ export class WebExtensionIsolate {
     }
     async #ResolveModule(specifier: string): Promise<Module> {
         if (this.#Modules.has(specifier)) return this.#Modules.get(specifier)!
-        const code = await this.#ModuleSource.HostImportModuleSource(specifier)
+        const code = await HostExtensionImportReflection(specifier, this.extensionID)
         const importMeta = { __proto__: null, url: specifier } as ImportMeta
         const module = new this.#Evaluators.Module(code, { importMeta })
         this.#Modules.set(specifier, module)
@@ -140,7 +139,6 @@ export class WebExtensionIsolate {
         return module
     }
     #Evaluators: Evaluators
-    #ModuleSource: ModuleSourceCache
     #Modules = new Map<string, Module>()
     #ModuleReverseMap = new Map<Module, string>()
     #ImportMetaMap = new Map<object, Module>()

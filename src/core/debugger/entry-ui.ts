@@ -35,7 +35,7 @@ export function showDebugEntry() {
     const input = shadow.querySelector('#cs-i') as any
     setURL(a, input)
 }
-function list([id, [manifest]]: [string, [NormalizedManifest, unknown]]) {
+function list([id, manifest]: [string, NormalizedManifest]) {
     const backgroundURL =
         `/?src=` +
         encodeURIComponent(

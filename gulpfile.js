@@ -27,7 +27,7 @@ class PluginTransform extends Transform {
     }
     _transform(file, encoding, callback) {
         const id = file.path.replace(/\\/g, '/').split('extension-src')[1].split('/')[1]
-        const registerName = `__holoflows_extension_${id}_register__`
+        const registerName = `__HostModuleSourceRegister__`
         const virtualPath =
             'holoflows-extension://' + id + '/' + file.path.replace(/\\/g, '/').split('extension-src/' + id + '/')[1]
 

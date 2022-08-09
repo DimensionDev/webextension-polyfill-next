@@ -2,10 +2,10 @@ import { from_v2, from_v3, NormalizedManifest } from '../../types/manifest.js'
 import { isDebugMode } from '../debugger/enabled.js'
 import { unreachable } from '../utils/assert.js'
 import { getExtensionOrigin, isBackground, isExtensionOrigin } from '../utils/url.js'
-import { ModuleSourceCache, WebExtensionIsolate } from './isolate.js'
+import { WebExtensionIsolate } from './isolate.js'
 
 export const reservedID = '150ea6ee-2b0a-4587-9879-0ca5dfc1d046'
-export const registeredWebExtension = new Map<string, [NormalizedManifest, ModuleSourceCache]>()
+export const registeredWebExtension = new Map<string, NormalizedManifest>()
 export const startedWebExtension = new Map<string, WebExtensionIsolate>()
 function getProtocolExtension() {
     if (startedWebExtension.size !== 1) throw new TypeError(`Expected exactly one extension.`)
@@ -20,18 +20,18 @@ export function registerWebExtension(extensionID: string, rawManifest: unknown) 
     if (!manifest) throw new TypeError(`Extension ${extensionID} does not have a valid manifest.`)
 
     console.debug(`[WebExtension] Loading extension ${manifest.name}(${extensionID}) with manifest`, manifest)
-    registeredWebExtension.set(extensionID, [manifest, new ModuleSourceCache(extensionID)])
+    registeredWebExtension.set(extensionID, manifest)
 }
 
 export async function startWebExtension(extensionID: string) {
     if (startedWebExtension.has(extensionID)) return
 
     if (!registeredWebExtension.has(extensionID)) throw new TypeError(`Extension ${extensionID} is not registered.`)
-    const [manifest, moduleCache] = registeredWebExtension.get(extensionID)!
+    const manifest = registeredWebExtension.get(extensionID)!
 
     if (isDebugMode || isExtensionOrigin()) hijackHTMLScript(() => isolate)
 
-    const isolate: WebExtensionIsolate = new WebExtensionIsolate(extensionID, manifest, moduleCache)
+    const isolate: WebExtensionIsolate = new WebExtensionIsolate(extensionID, manifest)
     startedWebExtension.set(extensionID, isolate)
 
     if (isDebugMode) {
