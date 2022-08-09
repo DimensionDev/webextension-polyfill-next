@@ -16,7 +16,7 @@ function compile() {
 }
 
 function copy() {
-    return src(['./extension-src/**/(!*.js)'], {
+    return src(['./extension-src/**/*', '!./extension-src/**/*.js'], {
         since: lastRun(copy),
     }).pipe(dest('./extension/'))
 }
