@@ -1,7 +1,7 @@
 import { Evaluators, imports, Module, ModuleNamespace, VirtualModuleRecord } from '@masknet/compartment'
 import { clone, CloneKnowledge } from '@masknet/intrinsic-snapshot'
 import type { NormalizedManifest } from '../../types/manifest.js'
-import { locationDebugModeAware } from '../utils/url.js'
+import { getExtensionOrigin, locationDebugModeAware } from '../utils/url.js'
 import { supportLocation_mock } from '../debugger/location.js'
 import { isDebugMode } from '../debugger/enabled.js'
 import { supportWorker_debug } from '../debugger/worker.js'
@@ -11,10 +11,53 @@ import { rejectEvaluator } from './api/evaluator.js'
 import { NewPromiseCapability, PromiseCapability } from '../utils/promise.js'
 import { createBrowser } from './api/browser/create.js'
 import { createChromeFromBrowser } from './api/chrome.js'
+import { debugModeURLRewrite } from '../debugger/url.js'
+import { FrameworkRPC } from '../rpc/framework-rpc.js'
+import { decodeStringOrBufferSource } from '../host/blob.js'
 
-export const enum IsolateMode {
-    Protocol,
-    ContentScript,
+export class ModuleSourceCache {
+    constructor(public id: string) {
+        Object.defineProperty(globalThis, `__holoflows_extension_${id}_register__`, {
+            value: (specifier: string, module: VirtualModuleRecord) => this.#moduleResolverCallback(specifier, module),
+        })
+    }
+    #Modules = new Map<string, VirtualModuleRecord>()
+    #ModuleResolveCapability = new Map<string, PromiseCapability<VirtualModuleRecord>>()
+    async #HostImportModuleSource(specifier: string) {
+        if (isDebugMode) {
+            await import(debugModeURLRewrite(this.id, specifier).toString())
+        } else {
+            // TODO: add a new framework API for this
+            const sourceText = await FrameworkRPC.fetch(this.id, {
+                method: 'GET',
+                url: specifier,
+                body: null,
+                headers: {},
+            })
+            const code = decodeStringOrBufferSource(sourceText.data)
+            if (typeof code !== 'string') throw new Error(`Cannot load source file ${specifier}`)
+            await FrameworkRPC.eval(this.id, code)
+        }
+    }
+    async HostImportModuleSource(specifier: string) {
+        if (this.#Modules.has(specifier)) return this.#Modules.get(specifier)!
+        const capability = NewPromiseCapability<VirtualModuleRecord>()
+        this.#ModuleResolveCapability.set(specifier, capability)
+        this.#HostImportModuleSource(specifier).catch(capability.Reject)
+        return capability.Promise
+    }
+    /**
+     * Add a module in the isolate's cache.
+     * @param specifier The module specifier.
+     * @param source The VirtualModuleRecord representation of the target module.
+     */
+    #moduleResolverCallback(specifier: string, source: VirtualModuleRecord) {
+        if (this.#Modules.has(specifier)) return
+        this.#Modules.set(specifier, source)
+        // Module might be preloaded, so there might be no capability.
+        this.#ModuleResolveCapability.get(specifier)?.Resolve(source)
+        this.#ModuleResolveCapability.delete(specifier)
+    }
 }
 export class WebExtensionIsolate {
     /**
@@ -27,32 +70,16 @@ export class WebExtensionIsolate {
      * @returns A Promise to the imported module's export namespace object.
      */
     import(specifier: string): Promise<ModuleNamespace> {
-        return this.#ResolveModule(specifier).then(imports)
-    }
-    /**
-     * Add a module in the isolate's cache.
-     * @param specifier The module specifier.
-     * @param source The VirtualModuleRecord representation of the target module.
-     */
-    // This function should be each-instance.
-    moduleResolverCallback = (specifier: string, source: VirtualModuleRecord) => {
-        if (this.#Modules.has(specifier)) throw new TypeError(`Module ${specifier} has already been resolved.`)
-
-        const meta = { url: specifier }
-        const module = new this.#Evaluators.Module(source, { importMeta: meta })
-        this.#Modules.set(specifier, module)
-        this.#ModuleReverseMap.set(module, specifier)
-        this.#ImportMetaMap.set(meta, module)
-        this.#ModuleResolveCapability.get(specifier)?.Resolve(module)
-        this.#ModuleResolveCapability.delete(specifier)
+        return this.#ResolveModule(new URL(specifier, getExtensionOrigin(this.extensionID)).toString()).then(imports)
     }
     /**
      * Create an extension environment for an extension.
      * @param extensionID The extension ID.
      * @param manifest The manifest of the extension.
      */
-    constructor(public extensionID: string, public manifest: NormalizedManifest) {
+    constructor(public extensionID: string, public manifest: NormalizedManifest, moduleSource: ModuleSourceCache) {
         console.log(`[WebExtension] Isolate ${extensionID} created.`)
+        this.#ModuleSource = moduleSource
 
         const knowledge: CloneKnowledge = {
             clonedFromOriginal: new WeakMap(),
@@ -78,8 +105,12 @@ export class WebExtensionIsolate {
         })
         const browser = createBrowser(extensionID, manifest)
         Object.defineProperty(this.globalThis, 'browser', {
-            get() { return browser },
-            set() { return true },
+            get() {
+                return browser
+            },
+            set() {
+                return true
+            },
             configurable: true,
             enumerable: true,
         })
@@ -89,23 +120,28 @@ export class WebExtensionIsolate {
     #importHook(importSpecifier: string, importMeta: object): Promise<Module> {
         const baseModule = this.#ImportMetaMap.get(importMeta)
         const baseURL = this.#ModuleReverseMap.get(baseModule!)
-        if (!baseModule || !baseURL)
+        if (!baseModule || !baseURL) {
             throw new TypeError(
                 `Bad state: No module can be found with the given importMeta to resolve the module import.`,
             )
+        }
 
         const nextURL = new URL(importSpecifier, baseURL).toString()
         return this.#ResolveModule(nextURL)
     }
     async #ResolveModule(specifier: string): Promise<Module> {
         if (this.#Modules.has(specifier)) return this.#Modules.get(specifier)!
-        const cap = NewPromiseCapability<Module>()
-        this.#ModuleResolveCapability.set(specifier, cap)
-        return cap.Promise
+        const code = await this.#ModuleSource.HostImportModuleSource(specifier)
+        const importMeta = { __proto__: null, url: specifier } as ImportMeta
+        const module = new this.#Evaluators.Module(code, { importMeta })
+        this.#Modules.set(specifier, module)
+        this.#ImportMetaMap.set(importMeta, module)
+        this.#ModuleReverseMap.set(module, specifier)
+        return module
     }
     #Evaluators: Evaluators
+    #ModuleSource: ModuleSourceCache
     #Modules = new Map<string, Module>()
     #ModuleReverseMap = new Map<Module, string>()
     #ImportMetaMap = new Map<object, Module>()
-    #ModuleResolveCapability = new Map<string, PromiseCapability<Module>>()
 }
