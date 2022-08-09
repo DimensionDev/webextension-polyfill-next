@@ -35,7 +35,8 @@
   "dependencies": {
     "@masknet/compartment": "^0.2.3",
     "@masknet/intrinsic-snapshot": "^0.1.0",
-    "async-call-rpc": "^6.1.1"
+    "async-call-rpc": "^6.1.1",
+    "ses": "^0.15.17"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"

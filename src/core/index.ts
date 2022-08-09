@@ -1,4 +1,5 @@
 // ## Inject here
+import './ses.js'
 import { isDebugMode } from './debugger/enabled.js'
 import { showDebugEntry } from './debugger/entry-ui.js'
 import { registeredWebExtension, registerWebExtension, startWebExtension } from './isolate/runner.js'
