@@ -20,15 +20,14 @@ export function locationDebugModeAware() {
 }
 export function isBackground(id: string, bg: Background) {
     const url = locationDebugModeAware()
-    if (bg.kind === 'page' && url.pathname === new URL(bg.page, getExtensionOrigin(id)).toString()) return true
-    if (bg.kind === 'scripts' && url.pathname === '/_generated_background_page.html') return true
+    if (bg.kind === 'page' && urlEq(url, new URL(bg.page, getExtensionOrigin(id)))) return true
+    if (bg.kind === 'scripts' && urlEq(url, new URL('/_generated_background_page.html', getExtensionOrigin(id))))
+        return true
     // TODO: need native suppport
-    if (bg.kind === 'worker' && url.pathname === '/_generated_background_worker.js') return true
+    if (bg.kind === 'worker' && urlEq(url, new URL('/_generated_background_worker.js', getExtensionOrigin(id)))) return true
     return false
 }
 
-export function getBackgroundPageURL(id: string, bg: Background): URL {
-    if (bg.kind === 'page') return new URL(bg.page, getExtensionOrigin(id))
-    if (bg.kind === 'scripts') return new URL('/_generated_background_page.html', getExtensionOrigin(id))
-    throw new Error('This feature is not available in Manifest V3')
+function urlEq(a: URL | Location, b: URL | Location) {
+    return a.toString() === b.toString()
 }

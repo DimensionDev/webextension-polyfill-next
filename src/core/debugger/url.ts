@@ -31,7 +31,7 @@ export function debugModeURLRewrite(extensionID: string, url: string | URL): URL
     } else if (u.origin === location.origin) {
         if (u.pathname.startsWith('/extension/')) return new URL(url)
         u.pathname = '/extension/' + extensionID + u.pathname
-        console.debug('Rewrite url', url, 'to', u.toJSON())
+        console.debug('Rewrite ', url, 'to', u.toJSON())
         return u
     }
     return new URL(url)

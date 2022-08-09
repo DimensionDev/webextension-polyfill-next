@@ -1,1 +1,1 @@
-console.log('hi')
+console.log(location.href)
