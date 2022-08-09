@@ -3,7 +3,7 @@
  *
  * AKA, given a browser object, it implements Chrome-style Web Extension API.
  */
- export function createChromeFromBrowser(_: Partial<typeof browser>) {
+export function createChromeFromBrowser(_: Partial<typeof browser>) {
     const chrome = {} as typeof browser
     for (const key in _) {
         // @ts-ignore
