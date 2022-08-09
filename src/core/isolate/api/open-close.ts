@@ -28,7 +28,7 @@ function openHost(extensionID: string): typeof open {
 export function closeHost(extensionID: string): typeof close {
     return () => {
         // if (!navigator.userActivation.isActive) return
-        FrameworkRPC['browser.tabs.query'](extensionID, { active: true }).then(i =>
+        FrameworkRPC['browser.tabs.query'](extensionID, { active: true }).then((i) =>
             FrameworkRPC['browser.tabs.remove'](extensionID, i[0]!.id!),
         )
     }
