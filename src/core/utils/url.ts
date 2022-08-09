@@ -24,7 +24,8 @@ export function isBackground(id: string, bg: Background) {
     if (bg.kind === 'scripts' && urlEq(url, new URL('/_generated_background_page.html', getExtensionOrigin(id))))
         return true
     // TODO: need native suppport
-    if (bg.kind === 'worker' && urlEq(url, new URL('/_generated_background_worker.js', getExtensionOrigin(id)))) return true
+    if (bg.kind === 'worker' && urlEq(url, new URL('/_generated_background_worker.js', getExtensionOrigin(id))))
+        return true
     return false
 }
 

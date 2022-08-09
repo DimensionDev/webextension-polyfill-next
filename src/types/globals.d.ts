@@ -5,3 +5,4 @@ interface WebkitAPI {
 interface WebkitMessageHandler {
     postMessage(data: unknown): void
 }
+declare function importScripts(...args: (string | URL)[]): void

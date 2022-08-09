@@ -1,0 +1,10 @@
+{
+    "extends": "../tsconfig.json",
+    "compilerOptions": {
+        "outDir": "../../dist/worker",
+        "tsBuildInfoFile": "../../dist/worker/.tsbuildinfo",
+        "lib": ["WebWorker", "ES2021"]
+    },
+    "include": ["./**/*.ts"],
+    "references": [{ "path": "../core" }]
+}

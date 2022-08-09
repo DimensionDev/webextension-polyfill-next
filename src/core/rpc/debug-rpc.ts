@@ -1,4 +1,7 @@
-import { AsyncCall, EventBasedChannel } from 'async-call-rpc'
+// @ts-ignore
+import { AsyncCall as _ } from '../../../node_modules/async-call-rpc/out/base.mjs'
+const AsyncCall = _ as typeof import('async-call-rpc').AsyncCall
+import type { EventBasedChannel } from 'async-call-rpc'
 import type { FrameworkImplementation, FrameworkMayInvokeMethods } from '../../types/RPC.js'
 import { isDebugMode } from '../debugger/enabled.js'
 import { debugModeURLRewrite, parseDebugModeURL } from '../debugger/url.js'

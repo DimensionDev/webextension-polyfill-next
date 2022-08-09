@@ -3,7 +3,7 @@ import { isDebugMode } from '../debugger/enabled.js'
 import { FrameworkRPC } from './framework-rpc.js'
 import { reservedID } from '../isolate/runner.js'
 
-class WebExtensionInternalChannel implements EventBasedChannel {
+export class WebExtensionInternalChannel implements EventBasedChannel {
     public listener: Set<(data: unknown) => void> = new Set()
     on(cb: (data: any) => void) {
         this.listener.add(cb)
@@ -37,7 +37,6 @@ class WebExtensionInternalChannel implements EventBasedChannel {
         }
     }
 }
-export const internalRPCChannel = new WebExtensionInternalChannel()
 
 interface JSONRPCRequest {
     jsonrpc: '2.0'

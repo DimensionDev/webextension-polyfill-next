@@ -1,4 +1,6 @@
-import { AsyncCall } from 'async-call-rpc'
+// @ts-ignore
+import { AsyncCall as _ } from '../../../node_modules/async-call-rpc/out/base.mjs'
+const AsyncCall = _ as typeof import('async-call-rpc').AsyncCall
 import type { InternalRPCMethods } from '../../types/internal-rpc.js'
 import {
     registeredWebExtension,
@@ -7,7 +9,7 @@ import {
     startWebExtension,
 } from '../isolate/runner.js'
 import { getExtensionOrigin } from '../utils/url.js'
-import { internalRPCChannel } from './internal-channel.js'
+import { WebExtensionInternalChannel } from './internal-channel.js'
 
 const internalRPCLocalImplementation: InternalRPCMethods = {
     async executeContentScript(targetTabID, extensionID, manifest, options) {
@@ -24,9 +26,12 @@ const internalRPCLocalImplementation: InternalRPCMethods = {
         }
     },
 }
-
-export const internalRPC = AsyncCall<InternalRPCMethods>(internalRPCLocalImplementation, {
-    log: false,
-    channel: internalRPCChannel,
-    strict: false,
-})
+export const internalRPCChannel = /*#__PURE__*/ new WebExtensionInternalChannel()
+export const internalRPC =
+    typeof importScripts === 'function'
+        ? null!
+        : AsyncCall<InternalRPCMethods>(internalRPCLocalImplementation, {
+              log: false,
+              channel: internalRPCChannel,
+              strict: false,
+          })

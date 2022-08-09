@@ -15,9 +15,12 @@
     "bundle:watch": "rollup -c -w"
   },
   "devDependencies": {
+    "@masknet/compartment": "^0.2.3",
+    "@masknet/intrinsic-snapshot": "^0.1.0",
+    "async-call-rpc": "^6.1.1",
+    "ses": "^0.15.17",
     "@changesets/cli": "^2.24.2",
     "@masknet/static-module-record-swc": "^0.3.2",
-    "@rollup/plugin-node-resolve": "^13.3.0",
     "@rollup/plugin-replace": "^4.0.0",
     "@swc/core": "^1.2.223",
     "@types/gulp": "^4.0.9",
@@ -32,12 +35,7 @@
   "pnpm": {
     "onlyBuiltDependencies": []
   },
-  "dependencies": {
-    "@masknet/compartment": "^0.2.3",
-    "@masknet/intrinsic-snapshot": "^0.1.0",
-    "async-call-rpc": "^6.1.1",
-    "ses": "^0.15.17"
-  },
+  "dependencies": {},
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   }

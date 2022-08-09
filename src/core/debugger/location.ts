@@ -1,6 +1,11 @@
 import type { CloneKnowledge } from '@masknet/intrinsic-snapshot'
 
-const intrinsic = typeof location === 'object' ? Object.getOwnPropertyDescriptors(location) : null
+const intrinsic =
+    typeof location === 'object'
+        ? typeof importScripts === 'function'
+            ? /*#__PURE__*/ Object.getOwnPropertyDescriptors(/*#__PURE__*/ Object.getPrototypeOf(location))
+            : /*#__PURE__*/ Object.getOwnPropertyDescriptors(location)
+        : null
 
 /**
  * Add support for mocking a fake Location object for debugging.
@@ -13,16 +18,18 @@ export function supportLocation_debug(mockingURL: URL, knowledge: CloneKnowledge
     const { emptyObjectOverride, descriptorOverride } = knowledge
     // skip ancestorOrigins, reload
 
-    emptyObjectOverride.set(intrinsic.assign.value!, (url: string) => {
-        if (typeof url !== 'string') throw new TypeError('URL must be a string.')
-        mockingURL = new URL(url, mockingURL)
-        onRedirect(mockingURL.href)
-    })
-    emptyObjectOverride.set(intrinsic.replace.value!, (url: string) => {
-        if (typeof url !== 'string') throw new TypeError('URL must be a string.')
-        mockingURL = new URL(url, mockingURL)
-        onRedirect(mockingURL.href)
-    })
+    if (intrinsic.assign) {
+        emptyObjectOverride.set(intrinsic.assign.value!, (url: string) => {
+            if (typeof url !== 'string') throw new TypeError('URL must be a string.')
+            mockingURL = new URL(url, mockingURL)
+            onRedirect(mockingURL.href)
+        })
+        emptyObjectOverride.set(intrinsic.replace.value!, (url: string) => {
+            if (typeof url !== 'string') throw new TypeError('URL must be a string.')
+            mockingURL = new URL(url, mockingURL)
+            onRedirect(mockingURL.href)
+        })
+    }
 
     descriptorOverride.set(location, {
         toString: { value: () => mockingURL.href },
@@ -42,6 +49,12 @@ export function supportLocation_debug(mockingURL: URL, knowledge: CloneKnowledge
                 onRedirect(mockingURL.href)
             })
     }
+}
+
+export function supportWorkerLocation_debug(mockingURL: URL, knowledge: CloneKnowledge) {
+    supportLocation_debug(mockingURL, knowledge, () => {
+        throw new TypeError()
+    })
 }
 function onDebugRedirect(url: string) {
     const search = new URLSearchParams(location.search)

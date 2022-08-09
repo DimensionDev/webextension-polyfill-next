@@ -1,5 +1,5 @@
 {
-    "references": [{ "path": "./core" }, { "path": "./types" }, { "path": "./test" }],
+    "references": [{ "path": "./core" }, { "path": "./types" }, { "path": "./test" }, { "path": "./worker" }],
     "compilerOptions": {
         // Classification follows https://www.typescriptlang.org/tsconfig
 
