@@ -12,7 +12,9 @@ function log<T>(returnValue: T) {
         return returnValue!
     }
 }
-const myTabID: any = parseInt(new URLSearchParams(location.search).get('id') ?? (~~(Math.random() * 100) as any))
+const myTabID: any = isDebugMode
+    ? parseInt(new URLSearchParams(location.search).get('id') ?? (~~(Math.random() * 100) as any))
+    : 0
 
 class CrossPageDebugChannel extends EventTarget implements EventBasedChannel {
     tabsQuery = new BroadcastChannel('query-tabs')

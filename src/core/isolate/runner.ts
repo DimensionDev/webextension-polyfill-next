@@ -29,7 +29,7 @@ export async function startWebExtension(extensionID: string) {
     if (!registeredWebExtension.has(extensionID)) throw new TypeError(`Extension ${extensionID} is not registered.`)
     const [manifest, moduleCache] = registeredWebExtension.get(extensionID)!
 
-    if (isExtensionOrigin() || isDebugMode) hijackHTMLScript(() => isolate)
+    if (isDebugMode || isExtensionOrigin()) hijackHTMLScript(() => isolate)
 
     const isolate: WebExtensionIsolate = new WebExtensionIsolate(extensionID, manifest, moduleCache)
     startedWebExtension.set(extensionID, isolate)

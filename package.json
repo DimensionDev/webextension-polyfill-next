@@ -17,6 +17,8 @@
   "devDependencies": {
     "@changesets/cli": "^2.24.2",
     "@masknet/static-module-record-swc": "^0.3.2",
+    "@rollup/plugin-node-resolve": "^13.3.0",
+    "@rollup/plugin-replace": "^4.0.0",
     "@swc/core": "^1.2.223",
     "@types/gulp": "^4.0.9",
     "c8": "^7.12.0",

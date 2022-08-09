@@ -1,8 +1,9 @@
 import type { EventBasedChannel } from 'async-call-rpc'
+import { isDebugMode } from '../debugger/enabled.js'
 
 export class SamePageDebugChannel extends EventTarget implements EventBasedChannel {
-    static server = new EventTarget()
-    static client = new EventTarget()
+    static server = isDebugMode ? new EventTarget() : null!
+    static client = isDebugMode ? new EventTarget() : null!
     constructor(private actor: 'server' | 'client') {
         super()
         SamePageDebugChannel[actor].addEventListener('targetEventChannel', (e) => {
