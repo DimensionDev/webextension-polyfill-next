@@ -14,9 +14,10 @@ export function getExtensionIDFromURL(url: string | URL) {
 export function isExtensionOrigin() {
     return locationDebugModeAware().protocol === 'holoflows-extension:'
 }
+const realLocation = typeof location === 'object' ? location : null!
 export function locationDebugModeAware() {
     if (isDebugMode) return parseDebugModeURL()
-    return location
+    return realLocation
 }
 export function isBackground(id: string, bg: Background) {
     const url = locationDebugModeAware()

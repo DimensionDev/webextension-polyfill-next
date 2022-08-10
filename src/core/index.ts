@@ -10,18 +10,22 @@ import './rpc/debug-rpc.js'
 //           registerWebExtension("your_extension", manifest)
 
 if (isDebugMode) {
-    if (!new URLSearchParams(location.search).get('src')) showDebugEntry()
-    else {
-        const extensionList = ['test']
-        for (const id of extensionList) {
-            await fetch('/extension/' + id + '/manifest.json')
-                .then((response) => response.json())
-                .then((manifest) => registerWebExtension(id, manifest))
-                .catch((error) => console.error(`Failed to load extension ${id}`, error))
-        }
+    const extensionList = ['test']
+    for (const id of extensionList) {
+        await fetch('/extension/' + id + '/manifest.json')
+            .then((response) => response.json())
+            .then((manifest) => registerWebExtension(id, manifest))
+            .catch((error) => console.error(`Failed to load extension ${id}`, error))
     }
+    if (new URLSearchParams(location.search).get('src')) {
+        for (const extension of registeredWebExtension.keys()) {
+            startWebExtension(extension)
+        }
+    } else showDebugEntry()
 }
 
-for (const extension of registeredWebExtension.keys()) {
-    startWebExtension(extension)
+if (!isDebugMode) {
+    for (const extension of registeredWebExtension.keys()) {
+        startWebExtension(extension)
+    }
 }

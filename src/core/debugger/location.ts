@@ -1,11 +1,13 @@
 import type { CloneKnowledge } from '@masknet/intrinsic-snapshot'
+import { isDebugMode } from './enabled.js'
 
-const intrinsic =
-    typeof location === 'object'
+const intrinsic = isDebugMode
+    ? typeof location === 'object'
         ? typeof importScripts === 'function'
-            ? /*#__PURE__*/ Object.getOwnPropertyDescriptors(/*#__PURE__*/ Object.getPrototypeOf(location))
-            : /*#__PURE__*/ Object.getOwnPropertyDescriptors(location)
+            ? Object.getOwnPropertyDescriptors(/*#__PURE__*/ Object.getPrototypeOf(location))
+            : Object.getOwnPropertyDescriptors(location)
         : null
+    : null
 
 /**
  * Add support for mocking a fake Location object for debugging.

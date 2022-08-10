@@ -27,12 +27,12 @@ export function debugModeURLRewrite(extensionID: string, url: string | URL): URL
         u.protocol = realLocation.protocol
         u.host = realLocation.host
         u.pathname = '/extension/' + extensionID + u.pathname
-        console.debug('Rewrite ', url, 'to', u.toJSON())
+        console.debug('Rewrite', url, 'to', u.toJSON())
         return u
     } else if (u.origin === realLocation.origin) {
         if (u.pathname.startsWith('/extension/')) return new URL(url)
         u.pathname = '/extension/' + extensionID + u.pathname
-        console.debug('Rewrite ', url, 'to', u.toJSON())
+        console.debug('Rewrite', url, 'to', u.toJSON())
         return u
     }
     return new URL(url)
