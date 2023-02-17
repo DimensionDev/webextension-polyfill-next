@@ -1,7 +1,7 @@
 {
   "packageManager": "pnpm@7.5.2",
   "name": "@dimensiondev/webextension-polyfill",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "license": "MIT",
   "type": "module",
   "scripts": {
