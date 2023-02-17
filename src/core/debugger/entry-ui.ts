@@ -3,8 +3,8 @@ import { registeredWebExtension } from '../isolate/runner.js'
 import { getExtensionOrigin } from '../utils/url.js'
 
 let fCount = 0
-const html = String.raw
 export function showDebugEntry() {
+    const html = String.raw
     const dom = document.createElement('main')
     document.body.appendChild(dom)
     const shadow = dom.attachShadow({ mode: 'open' })
@@ -36,6 +36,7 @@ export function showDebugEntry() {
     setURL(a, input)
 }
 function list([id, manifest]: [string, NormalizedManifest]) {
+    const html = String.raw
     const backgroundURL =
         `/?src=` +
         encodeURIComponent(

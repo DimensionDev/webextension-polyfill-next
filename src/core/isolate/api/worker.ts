@@ -10,7 +10,7 @@ export function supportWorker_debug(extensionID: string, knowledge: CloneKnowled
 }
 
 const RealWorker = typeof Worker === 'function' ? Worker : null!
-export function createWorker(extensionID: string) {
+function createWorker(extensionID: string) {
     if (!RealWorker) return null
     const workerProxy = isDebugMode ? '/dist/worker/index.js' : '__normal_worker__.js'
     return function Worker(scriptURL: string | URL, options?: WorkerOptions | undefined) {

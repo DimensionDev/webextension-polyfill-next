@@ -27,6 +27,7 @@ export const { HostImportReflection } = (() => {
     }
     async function importModuleSourceInner(specifier: string, extensionID: string) {
         if (isDebugMode) {
+            // worker also uses this.
             await import(debugModeURLRewrite(extensionID, specifier).toString())
         } else if (typeof importScripts === 'function') {
             importScripts(specifier)

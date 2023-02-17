@@ -10,7 +10,7 @@ import './rpc/debug-rpc.js'
 //           registerWebExtension("your_extension", manifest)
 
 if (isDebugMode) {
-    const extensionList = ['test']
+    const extensionList = ['test', 'mv3']
     for (const id of extensionList) {
         await fetch('/extension/' + id + '/manifest.json')
             .then((response) => response.json())

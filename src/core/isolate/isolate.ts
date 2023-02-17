@@ -13,6 +13,12 @@ import { supportFetch, supportFetch_debug } from './api/fetch.js'
 import { ModuleLoader } from './loader.js'
 import { supportWorker, supportWorker_debug } from './api/worker.js'
 
+export const enum IsolateMode {
+    Background,
+    Protocol,
+    ProtocolWorker,
+    ContentScript,
+}
 export class WebExtensionIsolate {
     /**
      * The globalThis object of the isolate.
@@ -31,11 +37,12 @@ export class WebExtensionIsolate {
      * Create an extension environment for an extension.
      * @param extensionID The extension ID.
      * @param manifest The manifest of the extension.
+     * @param mode The isolate mode.
      */
-    constructor(public extensionID: string, public manifest: NormalizedManifest) {
+    constructor(public extensionID: string, public manifest: NormalizedManifest, mode: IsolateMode) {
         console.log(`[WebExtension] Isolate ${extensionID} created.`)
 
-        if (isDebugMode) {
+        if (isDebugMode && mode === IsolateMode.ContentScript) {
             const knowledge: CloneKnowledge = {
                 clonedFromOriginal: new WeakMap(),
                 emptyObjectOverride: new WeakMap(),
@@ -58,11 +65,13 @@ export class WebExtensionIsolate {
             supportOpenAndClose(extensionID, this.globalThis)
         }
         this.#loader = new ModuleLoader(getExtensionOrigin(extensionID), this.globalThis)
-        const browser = createBrowser(extensionID, manifest)
-        Object.assign(this.globalThis, {
-            Module: this.#loader.evaluators.Module,
-            browser,
-            chrome: createChromeFromBrowser(browser),
-        })
+        if (mode !== IsolateMode.ProtocolWorker) {
+            const browser = createBrowser(extensionID, manifest)
+            Object.assign(this.globalThis, {
+                Module: this.#loader.evaluators.Module,
+                browser,
+                chrome: createChromeFromBrowser(browser),
+            })
+        }
     }
 }

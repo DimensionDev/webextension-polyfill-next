@@ -2,11 +2,9 @@ import type { CloneKnowledge } from '@masknet/intrinsic-snapshot'
 import { isDebugMode } from './enabled.js'
 
 const intrinsic = isDebugMode
-    ? typeof location === 'object'
-        ? typeof importScripts === 'function'
-            ? Object.getOwnPropertyDescriptors(/*#__PURE__*/ Object.getPrototypeOf(location))
-            : Object.getOwnPropertyDescriptors(location)
-        : null
+    ? typeof importScripts === 'function'
+        ? Object.getOwnPropertyDescriptors(/*#__PURE__*/ Object.getPrototypeOf(location))
+        : Object.getOwnPropertyDescriptors(location)
     : null
 
 /**

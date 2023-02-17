@@ -1,8 +1,8 @@
 import { from_v2, from_v3, NormalizedManifest } from '../../types/manifest.js'
 import { isDebugMode } from '../debugger/enabled.js'
 import { unreachable } from '../utils/assert.js'
-import { getExtensionOrigin, isBackground, isExtensionOrigin } from '../utils/url.js'
-import { WebExtensionIsolate } from './isolate.js'
+import { getExtensionOrigin, isBackground, isExtensionOrigin, locationDebugModeAware } from '../utils/url.js'
+import { IsolateMode, WebExtensionIsolate } from './isolate.js'
 
 export const reservedID = '150ea6ee-2b0a-4587-9879-0ca5dfc1d046'
 export const registeredWebExtension = new Map<string, NormalizedManifest>()
@@ -29,33 +29,58 @@ export async function startWebExtension(extensionID: string) {
     if (!registeredWebExtension.has(extensionID)) throw new TypeError(`Extension ${extensionID} is not registered.`)
     const manifest = registeredWebExtension.get(extensionID)!
 
-    if (isDebugMode || isExtensionOrigin()) hijackHTMLScript(() => isolate)
+    if (isExtensionOrigin() && !locationDebugModeAware().toString().startsWith(getExtensionOrigin(extensionID))) return
+    if (isDebugMode || isExtensionOrigin()) hijackHTMLScript(() => startedWebExtension.get(extensionID)!)
 
-    const isolate: WebExtensionIsolate = new WebExtensionIsolate(extensionID, manifest)
-    startedWebExtension.set(extensionID, isolate)
+    if (isBackground(extensionID, manifest.background)) {
+        const isolate: WebExtensionIsolate = new WebExtensionIsolate(extensionID, manifest, IsolateMode.Background)
+        setIsolate(isolate)
+        if (manifest.background.kind === 'page') {
+            await executeLoadedScriptTags()
+        } else if (manifest.background.kind === 'scripts') {
+            for (const url of manifest.background.scripts) {
+                const normalized = new URL(url, getExtensionOrigin(extensionID)).toString()
+                await isolate!.import(normalized)
+            }
+        } else if (manifest.background.kind === 'worker') {
+            const normalized = new URL(manifest.background.worker, getExtensionOrigin(extensionID)).toString()
+            await import(normalized)
+        } else unreachable(manifest.background)
+    } else if (isExtensionOrigin()) {
+        if (
+            locationDebugModeAware().toString() ===
+            getExtensionOrigin(extensionID) + '_generated_background_page.html'
+        ) {
+            // This means we're in the Service Worker case.
+            if (manifest.background.kind !== 'worker') throw new Error('Assert failed')
+            const workerProxy = isDebugMode ? '/dist/core/index.js' : '/__web_extension_polyfill__.js'
+            const search = new URLSearchParams({})
+            search.set('src', new URL(manifest.background.worker, getExtensionOrigin(extensionID)).toString())
+            search.set('manifest', JSON.stringify(manifest))
 
-    if (isDebugMode) {
-        Reflect.set(globalThis, 'i' + extensionID, isolate)
-        Reflect.set(globalThis, 'g' + extensionID, isolate.globalThis)
-        console.log(`Extension ${extensionID} registered on window.(i|g)${extensionID}`)
+            new Worker(
+                workerProxy + '?' + search,
+                isDebugMode ? { type: 'module', name: 'ServiceWorker' } : { name: 'ServiceWorker' },
+            )
+        } else {
+            const isolate: WebExtensionIsolate = new WebExtensionIsolate(extensionID, manifest, IsolateMode.Protocol)
+            setIsolate(isolate)
+            await executeLoadedScriptTags()
+        }
+    } else {
+        const isolate: WebExtensionIsolate = new WebExtensionIsolate(extensionID, manifest, IsolateMode.ContentScript)
+        setIsolate(isolate)
+        // TODO: content scripts
     }
 
-    if (isBackground(extensionID, isolate.manifest.background)) {
-        if (isolate.manifest.background.kind === 'page') {
-            await executeLoadedScriptTags()
-        } else if (isolate.manifest.background.kind === 'scripts') {
-            for (const url of isolate.manifest.background.scripts) {
-                const normalized = new URL(url, getExtensionOrigin(extensionID)).toString()
-                await isolate.import(normalized)
-            }
-        } else if (isolate.manifest.background.kind === 'worker') {
-            const normalized = new URL(isolate.manifest.background.worker, getExtensionOrigin(extensionID)).toString()
-            await isolate.import(normalized)
-        } else unreachable(isolate.manifest.background)
-    } else if (isExtensionOrigin()) {
-        await executeLoadedScriptTags()
-    } else {
-        // TODO: content scripts
+    function setIsolate(isolate: WebExtensionIsolate) {
+        startedWebExtension.set(extensionID, isolate)
+
+        if (isDebugMode) {
+            Reflect.set(globalThis, 'i' + extensionID, isolate)
+            Reflect.set(globalThis, 'g' + extensionID, isolate.globalThis)
+            console.log(`Extension ${extensionID} registered on window.(i|g)${extensionID}`)
+        }
     }
 }
 

@@ -1,14 +1,15 @@
-import './ses.js'
+import '../core/ses.js'
 import { ModuleLoader } from '../core/isolate/loader.js'
 import { isDebugMode } from '../core/debugger/enabled.js'
-import { supportWorker } from '../core/isolate/api/worker.js'
 import type { CloneKnowledge } from '@masknet/intrinsic-snapshot'
 import { supportWorkerLocation_debug } from '../core/debugger/location.js'
 import { getExtensionIDFromURL, locationDebugModeAware } from '../core/utils/url.js'
+import { WebExtensionIsolate } from '../core/isolate/isolate.js'
 
 const baseURL = locationDebugModeAware()
 const extensionID = getExtensionIDFromURL(baseURL.toString())
-if (!extensionID) throw new Error('Cannot start a Worker without an extension context.')
+const manifest = new URLSearchParams(location.search).get('manifest')!
+if (!extensionID || !manifest) throw new Error('Cannot start a Worker without an extension context.')
 
 if (isDebugMode) {
     const { clone, undeniable } = await import('../../node_modules/@masknet/intrinsic-snapshot/dist/index.js')
@@ -29,6 +30,7 @@ if (isDebugMode) {
     })
     WorkerLocation = nextLocation.constructor as any
 }
-supportWorker(extensionID, globalThis)
+
+new WebExtensionIsolate(extensionID, {})
 const loader = new ModuleLoader(baseURL.toString(), globalThis)
 loader.import(baseURL.toString())
